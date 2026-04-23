@@ -1,0 +1,28 @@
+
+================================================================================
+UBER FARES ANALYSIS - COMPLETE SUMMARY
+================================================================================
+
+DATASET OVERVIEW:
+- Total trips analyzed: 191,822
+- Time period: 2009 to 2015
+- Features engineered: 32
+
+FARE STATISTICS:
+- Mean fare: $11.31
+- Median fare: $8.50
+- Fare range: $2.50 - $190.83
+
+DISTANCE STATISTICS:
+- Mean distance: 3.37 km
+- Median distance: 2.19 km
+- Distance range: 0.10 - 46.09 km
+
+KEY INSIGHTS:
+1. Distance is the strongest predictor of fare (correlation: 0.898)
+2. Pricing model: $2.36/km + $3.37 base fare
+3. Peak hours: 7:00 PM (19:00) with 12,083 trips
+4. Most common trip: 1 passenger (69.4% of all trips)
+5. Highest fares occur during early morning hours (4:00-6:00 AM)
+
+================================================================================
