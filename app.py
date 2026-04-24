@@ -372,6 +372,62 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
+
+    col_t7, col_t8 = st.columns([2, 1])
+    with col_t7:
+        month_counts = filtered['pickup_datetime'].dt.month_name().value_counts().reindex(
+            ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        ).reset_index()
+        month_counts.columns = ["Month", "Number of Trips"]
+        fig_month = px.bar(month_counts, x="Month", y="Number of Trips", title="Trips by Month", color_discrete_sequence=["#06C167"])
+        st.plotly_chart(fig_month, width="stretch")
+    with col_t8:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Monthly Seasonality</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Ride volumes fluctuate throughout the year, often impacted by weather conditions and seasonal holidays, showing clear macro-level trends in ridership adoption.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
+
+    col_t9, col_t10 = st.columns([2, 1])
+    with col_t9:
+        year_counts = filtered['pickup_datetime'].dt.year.value_counts().reset_index()
+        year_counts.columns = ["Year", "Number of Trips"]
+        year_counts = year_counts.sort_values(by="Year")
+        year_counts["Year"] = year_counts["Year"].astype(str)
+        fig_year = px.bar(year_counts, x="Year", y="Number of Trips", title="Trips by Year", color_discrete_sequence=["#06C167"])
+        st.plotly_chart(fig_year, width="stretch")
+    with col_t10:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Annual Growth</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">This chart highlights the platform's multi-year structural progression. Note how overall usage density scales as ride-sharing evolved from an emerging technology into essential public infrastructure.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
+
+    col_t11, col_t12 = st.columns([2, 1])
+    with col_t11:
+        date_counts = filtered['pickup_datetime'].dt.date.value_counts().reset_index()
+        date_counts.columns = ["Date", "Number of Trips"]
+        date_counts = date_counts.sort_values(by="Date")
+        fig_date = px.line(date_counts, x="Date", y="Number of Trips", title="Trips Over Time", color_discrete_sequence=["#06C167"])
+        st.plotly_chart(fig_date, width="stretch")
+    with col_t12:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Long-Term Trajectory</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Viewing the granular day-to-day ridership volume allows us to identify extreme macro-outliers—such as dramatic drops from massive blizzards or intense spikes from major city-wide events.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
 with tab4:
     st.subheader("Advanced Feature Analysis")
     
@@ -405,7 +461,7 @@ with tab4:
             pca_df = pd.read_csv(pca_file)
             # if user filters, we try to align indices, but PCA was done on sample. We'll simply show it on the map.
             uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
-            fig_pca = px.scatter(pca_df, x="PC1", y="PC2", color=pca_df['cluster'].astype(str), title="PCA Dimensionality Reduction Scatter", color_discrete_sequence=uber_palette, opacity=0.5)
+            fig_pca = px.scatter(pca_df, x="pca_x", y="pca_y", color=pca_df['cluster'].astype(str), title="PCA Dimensionality Reduction Scatter", color_discrete_sequence=uber_palette, opacity=0.5)
             st.plotly_chart(fig_pca, width="stretch")
         else:
             st.info("PCA Data missing!")
