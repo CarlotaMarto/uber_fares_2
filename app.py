@@ -79,6 +79,77 @@ st.markdown(
         font-weight: 600;
         letter-spacing: 0.5px;
     }}
+    
+    /* High-Fidelity Segment Animations */
+    @keyframes drive-route {{
+        0% {{ top: 80%; left: 10%; opacity: 0; }}
+        5% {{ opacity: 1; }}
+        40% {{ top: 80%; left: 60%; }}
+        50% {{ top: 80%; left: 60%; }}
+        90% {{ top: 20%; left: 60%; }}
+        95% {{ opacity: 1; }}
+        100% {{ top: 20%; left: 60%; opacity: 0; }}
+    }}
+    @keyframes drive-rotate {{
+        0% {{ transform: translate(-50%, -50%) rotate(0deg); }}
+        40% {{ transform: translate(-50%, -50%) rotate(0deg); }}
+        50% {{ transform: translate(-50%, -50%) rotate(-90deg); }}
+        100% {{ transform: translate(-50%, -50%) rotate(-90deg); }}
+    }}
+    .map-track {{
+        width: 100%;
+        height: 120px;
+        background-color: #1A1A1A;
+        background-image: 
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        margin-top: 15px;
+        border: 1px solid #333333;
+    }}
+    .route-line {{
+        position: absolute;
+        width: 50%;
+        height: 60%;
+        top: 50%;
+        left: 35%;
+        border-bottom: 4px solid rgba(123, 97, 255, 0.4);
+        border-right: 4px solid rgba(123, 97, 255, 0.4);
+        transform: translate(0, 0);
+        border-radius: 0 0 10px 0;
+    }}
+    .destination-pin {{
+        position: absolute;
+        top: 20%;
+        left: 60%;
+        font-size: 24px;
+        transform: translate(-50%, -100%);
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        z-index: 5;
+    }}
+    .moving-car-v2 {{
+        position: absolute;
+        width: 20px;
+        height: 12px;
+        background-color: #06C167;
+        border-radius: 2px;
+        box-shadow: 0 0 10px rgba(6, 193, 103, 0.5);
+        z-index: 10;
+        animation: drive-route 6s infinite, drive-rotate 6s infinite;
+    }}
+    .moving-car-v2::after {{
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 2px;
+        width: 4px;
+        height: 8px;
+        background-color: rgba(255,255,255,0.5); /* Windshield */
+        border-radius: 1px;
+    }}
     </style>
     
     <div class="uber-navbar">
@@ -95,7 +166,19 @@ def load_data():
     # Ensure proper dtypes (already cleaned in the notebook)
     df["pickup_datetime"] = pd.to_datetime(df["pickup_datetime"], errors="coerce")
     if 'cluster' in df.columns:
-        df['cluster'] = 'Cluster ' + df['cluster'].astype(str)
+        cluster_labels = {
+            0: "0: Airport / Long-Distance",
+            1: "1: Standard Weekday",
+            2: "2: Weekend Rush-Hour",
+            3: "3: Standard Weekend",
+            4: "4: High Passenger / SUV",
+            5: "5: Fare / GPS Anomalies",
+            6: "6: Weekday Rush-Hour",
+            7: "7: Late-Night Party"
+        }
+        # First ensure cluster is numeric if it's not already
+        df['cluster'] = pd.to_numeric(df['cluster'], errors='coerce')
+        df['cluster'] = df['cluster'].map(cluster_labels).fillna("Unknown Cluster")
     return df
 
 df = load_data()
@@ -198,7 +281,7 @@ if 'tab_index' not in st.session_state:
     st.session_state['tab_index'] = 0
 
 # Visualizations
-tab_titles = ["Distributions", "Temporal Analysis", "Geospatial & Clusters", "Advanced Analysis", "Business Impact"]
+tab_titles = ["Distributions", "Temporal Analysis", "Segment Encyclopedia", "Geospatial Hub", "Advanced Analysis", "Business Strategy"]
 tabs = st.tabs(tab_titles)
 
 # I have to handle the index carefully. 
@@ -270,77 +353,6 @@ with tabs[0]:
             <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Surprisingly, the median fare does not drastically increase for larger passenger counts, implying larger vehicles are fundamentally booked for identical trip lengths as solo sedans.</p>
         </div>
         """, unsafe_allow_html=True)
-
-with tabs[2]:
-    st.subheader("Pickup Locations & Clusters")
-    
-    if 'cluster' in df.columns:
-        with st.expander("Show Cluster Characteristics (Average Values)"):
-            cluster_summary = df.groupby('cluster')[['distance_km', 'fare_amount', 'pickup_hour', 'passenger_count']].mean().round(2)
-            st.dataframe(cluster_summary, use_container_width=True)
-            st.markdown('''
-            **What do these segments actually mean?**
-            By mathematically analyzing the multi-dimensional dataset (Distance, Fare, Passenger Count, Weekends, and Rush Hour flags), the clustering algorithm effectively broke the trips into these profiles:
-            
-            - **Cluster 0: Long-Distance / Airport Runs.** Exceptionally high average distance (~16km) and high fares (~$42).
-            - **Cluster 1: Standard Weekday Trips.** Typical daytime trips occurring entirely outside of peak traffic.
-            - **Cluster 2: Weekend Rush-Hour.** Trips taking place strictly during busy weekend peak traffic hours. *(The calculated timeframe appears as mid-day because the algorithmic average simply splits the difference between the distinct morning and evening rush hour spikes).*
-            - **Cluster 3: Standard Weekend Trips.** Normal trips reliably happening on weekends outside of rush hour.
-            - **Cluster 4: High Passenger / SUV Trips.** Standard metrics, but strictly large groups (averaging 5 passengers).
-            - **Cluster 5: GPS / Fare Anomalies.** Micro distances (~0.2km) but massive fares (~$47). The algorithm quarantined these mathematical edge-cases (likely GPS cut-outs, severe gridlock, or flat-rate tolls) into their own distinct group.
-            - **Cluster 6: Weekday Rush-Hour Commutes.** Trips taking place strictly during weekday peak traffic. *(Similar to Cluster 2, the average time shows ~1:00 PM due solely to mathematically averaging morning and evening commutes together).*
-            - **Cluster 7: Late-Night "Party" Trips.** Occurring almost exclusively incredibly late at night (averaging 2:00 AM).
-            
-            *Use the interactive tabs and maps below to visually explore these groups by filtering!*
-            ''')
-            
-        col_c1, col_c2 = st.columns([2, 1])
-        with col_c1:
-            uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
-            fig_cluster = px.scatter(
-                map_df, x='pickup_longitude', y='pickup_latitude', color='cluster',
-                title='Pickup locations colored by cluster', hover_data=['fare_amount', 'distance_km'],
-                height=500, color_discrete_sequence=uber_palette
-            )
-            fig_cluster.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-            st.plotly_chart(fig_cluster, width="stretch")
-        with col_c2:
-            st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
-                <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Geographical Cluster Zonation</h4>
-                <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">The K-Means algorithm effectively carves harsh geographical segmentations purely based on pricing and time parameters. We can visibly see distinct "zones" corresponding to localized rider behaviors.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
-            
-        col_m1, col_m2 = st.columns([2, 1])
-        with col_m1:
-            uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
-            fig_map = px.scatter_mapbox(
-                map_df, lat='pickup_latitude', lon='pickup_longitude', color='cluster',
-                size='fare_amount', hover_data=['fare_amount', 'distance_km'], zoom=10,
-                title='Pickup Location Density Map', mapbox_style="open-street-map",
-                height=500, color_discrete_sequence=uber_palette
-            )
-            fig_map.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-            st.plotly_chart(fig_map, width="stretch")
-        with col_m2:
-            st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
-                <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Ride Volume Heatmap</h4>
-                <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">This heatmap vividly underscores a massive structural volume concentration deeply centered around the business district hubs, which rapidly dissipates into nothingness moving toward the peripheral outer limits.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-    else:
-        st.write('Cluster column not available in the data.')
-        map_data = map_df[["pickup_latitude", "pickup_longitude"]].rename(
-            columns={"pickup_latitude": "lat", "pickup_longitude": "lon"}
-        )
-        st.map(map_data)
 
 with tabs[1]:
     st.subheader("Temporal Demand & Pricing")
@@ -468,8 +480,8 @@ with tabs[1]:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
-            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Monthly Seasonality</h4>
-            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Ride volumes fluctuate throughout the year, often impacted by weather conditions and seasonal holidays, showing clear macro-level trends in ridership adoption.</p>
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px;">Annual Growth</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">This chart highlights the platform's multi-year structural progression. Note how overall usage density scales as ride-sharing evolved from an emerging technology into essential public infrastructure.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -505,12 +517,138 @@ with tabs[1]:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px;">Long-Term Trajectory</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Viewing the granular day-to-day ridership volume allows us to identify extreme macro-outliers—such as dramatic drops from massive blizzards or intense spikes from major city-wide events.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+with tabs[2]:
+    st.subheader("Smart Segments Encyclopedia")
+    st.markdown("""
+    <p style="color: #666666; font-size: 18px; margin-bottom: 30px;">
+        Our Machine Learning algorithm (K-Means) has autonomously identified 8 distinct groups of trips. 
+        Explore the <b>Animated Profiles</b> below to see how each segment moves through the city.
+    </p>
+    """, unsafe_allow_html=True)
+
+    if 'cluster' in df.columns:
+        clusters = [
+            {"id": "0: Airport / Long-Distance", "desc": "High-speed hauls to JFK/EWR. Profitable and specialized.", "color": "#06C167", "speed": "4s", "emoji": "✈️"},
+            {"id": "1: Standard Weekday", "desc": "The rhythm of the city. Reliable daytime transit.", "color": "#000000", "speed": "8s", "emoji": "🏙️"},
+            {"id": "2: Weekend Rush-Hour", "desc": "Busy leisure hours. Navigating the Saturday surge.", "color": "#333333", "speed": "12s", "emoji": "🛍️"},
+            {"id": "3: Standard Weekend", "desc": "Relaxed weekend vibes for brunches and sightseeing.", "color": "#666666", "speed": "10s", "emoji": "🍦"},
+            {"id": "4: High Passenger / SUV", "desc": "Big groups. Big vehicles. Big impact.", "color": "#999999", "speed": "9s", "emoji": "🚐"},
+            {"id": "5: Fare / GPS Anomalies", "desc": "The outliers. Mathematical exceptions and edge-cases.", "color": "#CCCCCC", "speed": "15s", "emoji": "⚠️"},
+            {"id": "6: Weekday Rush-Hour", "desc": "Peak adrenaline. The high-volume commute pulse.", "color": "#1f7a46", "speed": "3s", "emoji": "👔"},
+            {"id": "7: Late-Night Party", "desc": "Neon lights and night owls. Connecting the nightlife.", "color": "#048043", "speed": "6s", "emoji": "✨"},
+        ]
+
+        # Display cards in rows of 2
+        for i in range(0, len(clusters), 2):
+            cols = st.columns(2)
+            for j in range(2):
+                if i + j < len(clusters):
+                    c = clusters[i+j]
+                    with cols[j]:
+                        c_data = df[df['cluster'] == c['id']]
+                        avg_fare = c_data['fare_amount'].mean() if len(c_data) > 0 else 0
+                        avg_dist = c_data['distance_km'].mean() if len(c_data) > 0 else 0
+                        
+                        st.markdown(f"""
+                        <div style="background-color: #FFFFFF; border: 1px solid #E2E2E2; border-left: 10px solid {c['color']}; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <h3 style="margin-top: 0; color: #000000; font-size: 22px;">{c['id']}</h3>
+                                <span style="font-size: 24px;">{c['emoji']}</span>
+                            </div>
+                            <p style="color: #666666; font-size: 15px; margin-top: 5px; min-height: 45px;">{c['desc']}</p>
+                            
+                            <div class="map-track">
+                                <div class="route-line"></div>
+                                <div class="destination-pin">📍</div>
+                                <div class="moving-car-v2" style="animation-duration: {c['speed']}; background-color: {c['color']}; box-shadow: 0 0 15px {c['color']}88;"></div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 30px; margin-top: 20px; border-top: 1px solid #F0F0F0; padding-top: 15px;">
+                                <div><span style="color: #999999; font-size: 11px; text-transform: uppercase; font-weight: 700;">Avg Fare</span><br><b style="font-size: 20px; color: #000000;">${avg_fare:.2f}</b></div>
+                                <div><span style="color: #999999; font-size: 11px; text-transform: uppercase; font-weight: 700;">Avg Distance</span><br><b style="font-size: 20px; color: #000000;">{avg_dist:.2f}km</b></div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+with tabs[3]:
+    st.subheader("Geospatial Hub")
+    st.markdown("<p style='color: #666666;'>Interactive mapping of all clusters across the NYC metropolitan area.</p>", unsafe_allow_html=True)
+    
+    # --- GEOSPATIAL MAPS ---
+    col_c1, col_c2 = st.columns([2, 1])
+    with col_c1:
+        uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
+        fig_cluster = px.scatter(
+            map_df, x='pickup_longitude', y='pickup_latitude', color='cluster',
+            title='Pickup locations colored by cluster', hover_data=['fare_amount', 'distance_km'],
+            height=500, color_discrete_sequence=uber_palette
+        )
+        fig_cluster.update_layout(margin=dict(l=0, r=0, t=40, b=0))
+        st.plotly_chart(fig_cluster, width="stretch")
+    with col_c2:
+        st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Geographical Cluster Zonation</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">The K-Means algorithm effectively carves harsh geographical segmentations purely based on pricing and time parameters. We can visibly see distinct "zones" corresponding to localized rider behaviors.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
+        
+    col_m1, col_m2 = st.columns([2, 1])
+    with col_m1:
+        uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
+        
+        # Create animated version sorted by hour
+        map_df_anim = map_df.dropna(subset=['pickup_hour']).sort_values('pickup_hour')
+        map_df_anim['Hour'] = map_df_anim['pickup_hour'].astype(int).astype(str) + ":00"
+        
+        fig_map = px.scatter_mapbox(
+            map_df_anim, lat='pickup_latitude', lon='pickup_longitude', color='cluster',
+            size='fare_amount', hover_data=['fare_amount', 'distance_km'], zoom=9.5,
+            animation_frame='Hour',
+            title='Interactive Time-Lapse: Demand by Hour', mapbox_style="carto-positron",
+            height=550, color_discrete_sequence=uber_palette
+        )
+        fig_map.update_layout(margin=dict(l=0, r=0, t=40, b=0))
+        # Speed up the animation slightly for a smoother time-lapse effect
+        fig_map.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 800
+        
+        st.plotly_chart(fig_map, width="stretch")
+    with col_m2:
+        st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #06C167; padding: 20px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Time-Lapse Explorer</h4>
+            <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Hit the <b>Play</b> button on the map to watch ridership demand flow dynamically across New York City. <br><br>Notice how the morning rush explicitly starts pulling heavily from outside boroughs, before collapsing entirely back into Manhattan's core for the evening peak.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<hr style='border:1px solid #E2E2E2;'>", unsafe_allow_html=True)
+
+    col_t11, col_t12 = st.columns([2, 1])
+    with col_t11:
+        date_counts = filtered['pickup_datetime'].dt.date.value_counts().reset_index()
+        date_counts.columns = ["Date", "Number of Trips"]
+        date_counts = date_counts.sort_values(by="Date")
+        fig_date = px.line(date_counts, x="Date", y="Number of Trips", title="Trips Over Time", color_discrete_sequence=["#06C167"])
+        st.plotly_chart(fig_date, width="stretch")
+    with col_t12:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-left: 4px solid #000000; padding: 20px; border-radius: 4px;">
             <h4 style="margin-top: 0; color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Long-Term Trajectory</h4>
             <p style="color: #333333; font-size: 15px; line-height: 1.5; margin-bottom: 0;">Viewing the granular day-to-day ridership volume allows us to identify extreme macro-outliers—such as dramatic drops from massive blizzards or intense spikes from major city-wide events.</p>
         </div>
         """, unsafe_allow_html=True)
 
-with tabs[3]:
+with tabs[4]:
     st.subheader("Advanced Feature Analysis")
     
     col_a1, col_a2 = st.columns([2, 1])
@@ -556,7 +694,7 @@ with tabs[3]:
         </div>
         """, unsafe_allow_html=True)
 
-with tabs[4]:
+with tabs[5]:
     st.subheader("Actionable Business Strategies")
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -633,7 +771,7 @@ with tabs[4]:
             ))
             
             # Map 2: Cluster Highlights vs Actual Airport Pins
-            c0_df = df[df['cluster'] == 'Cluster 0'].copy()
+            c0_df = df[df['cluster'] == "0: Airport / Long-Distance"].copy()
             c0_df['Label'] = 'Automated Cluster 0 (The Green Dots)'
             fig_air = px.scatter_mapbox(
                 c0_df, lat='pickup_latitude', lon='pickup_longitude', color='Label',
@@ -649,7 +787,7 @@ with tabs[4]:
         col_b3, col_b4 = st.columns([1.5, 1])
         with col_b3:
             # Graph for Pricing: Time series comparing Cluster 7 vs Baseline AND Geographic Map
-            cnumber = 'Cluster 7'
+            cnumber = "7: Late-Night Party"
             c7_df = df[df['cluster'] == cnumber].copy()
             c7_demand = c7_df.groupby(c7_df['pickup_datetime'].dt.hour)['fare_amount'].count().reset_index()
             c7_demand.columns = ['Hour of Day', 'Total Nightlife Trips']
@@ -691,8 +829,8 @@ with tabs[4]:
             </div>
             """, unsafe_allow_html=True)
         with col_b6:
-            c14_df = df[df['cluster'].isin(['Cluster 1', 'Cluster 4'])].copy()
-            c14_df['Profile'] = c14_df['cluster'].map({'Cluster 1': 'Solo Commuters', 'Cluster 4': 'Families / Group SUV'})
+            c14_df = df[df['cluster'].isin(["1: Standard Weekday", "4: High Passenger / SUV"])].copy()
+            c14_df['Profile'] = c14_df['cluster'].map({"1: Standard Weekday": 'Solo Commuters', "4: High Passenger / SUV": 'Families / Group SUV'})
             c14_avg = c14_df.groupby('Profile')['passenger_count'].mean().reset_index()
             fig_market = px.bar(c14_avg, x='Profile', y='passenger_count', title="Demographic Targeting by Avg. Passengers", color_discrete_sequence=["#06C167", "#333333"])
             fig_market.update_layout(height=500, margin=dict(l=0, r=0, t=40, b=0))
