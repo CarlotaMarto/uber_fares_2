@@ -1,168 +1,102 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-import pydeck as pdk
-from utils import load_data
+from utils import load_data, render_footer
 
 df = load_data()
 
-st.title("Actionable Business Strategies")
+st.title("Data-Driven Business Strategies")
 
-# Executive Summary
-st.markdown("### Executive Summary")
+# Pre-calculate data needed
+# 1. Profitability: fare per km
+df['fare_per_km'] = df['fare_amount'] / df['distance_km']
+# Clean up infinite/NaN from division by zero
+df_profit = df[(df['distance_km'] > 0.5) & (df['fare_amount'] > 0)].copy()
 
-kpi1, kpi2, kpi3 = st.columns(3)
-with kpi1:
-    st.metric(label="Actionable Strategies", value="3")
-with kpi2:
-    st.metric(label="Primary Growth Driver", value="Dynamic Pricing")
-with kpi3:
-    st.metric(label="Primary Cost Saver", value="Fleet Routing")
+# 2. Fleet sizing
+passenger_counts = df['passenger_count'].value_counts().reset_index()
+passenger_counts.columns = ['Passengers', 'Trips']
+passenger_counts['Percentage'] = (passenger_counts['Trips'] / len(df)) * 100
+passenger_counts = passenger_counts.sort_values('Passengers')
 
 st.markdown("""
-> **Tip:** Keep an eye out for targeted UberXL discounts if you're traveling with your family, or special flat rates if you're a solo commuter! The platform uses these analytical profiles to offer you the best possible deals based on exactly how you travel.
+> **Tip:** The following strategies are derived mathematically directly from the existing dataset features, focusing on efficiency, capacity utilization, and operational volume tradeoffs.
 """)
 
 st.divider()
 
-st.markdown("### Strategic Implementation Plan")
-st.markdown("<br>", unsafe_allow_html=True)
-
 if 'cluster' in df.columns:
-    # STRATEGY 1: Route & Fleet Optimization
-    col_b1, col_b2 = st.columns([1, 1.5])
+    # STRATEGY 1: Profitability Optimization ($/km)
+    st.markdown("### 1. Profitability Optimization (Fare per KM)")
+    col_a1, col_a2 = st.columns([1, 1.5])
+    with col_a1:
+        st.markdown("""
+        <div style="background-color: #F6F6F6; border-top: 6px solid #06C167; padding: 25px; border-radius: 8px; height: 100%;">
+            <h4 style="color: #000000; margin-top: 0;">Metric: Average Fare per Kilometer</h4>
+            <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> By calculating `fare_amount / distance_km`, we identify exactly which hours yield the highest profit margins for drivers, regardless of the total distance driven.</p>
+            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
+            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <p style="color: #333333; font-size: 16px; margin-top: 10px;">Implement highly targeted driver incentives during the <b>5:00 AM - 7:00 AM</b> window. Though absolute volume is lower, the intrinsic profitability per km is at its absolute peak, maximizing fleet yield.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_a2:
+        hourly_profit = df_profit.groupby(df_profit['pickup_datetime'].dt.hour)['fare_per_km'].mean().reset_index()
+        hourly_profit.columns = ['Hour', 'Avg $/km']
+        fig1 = px.line(hourly_profit, x='Hour', y='Avg $/km', title="Average Profitability by Hour of Day", markers=True)
+        fig1.update_traces(line_color="#06C167", line_width=4, marker=dict(size=8, color="#000000"))
+        fig1.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0), xaxis=dict(tickmode='linear', dtick=2))
+        st.plotly_chart(fig1, use_container_width=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # STRATEGY 2: Fleet Right-Sizing
+    st.markdown("### 2. Fleet Capacity Utilization")
+    col_b1, col_b2 = st.columns([1.5, 1])
     with col_b1:
-        st.markdown("""
-        <div style="background-color: #F6F6F6; border-top: 6px solid #06C167; padding: 30px; border-radius: 8px; height: 100%;">
-            <h3 style="color: #000000; font-size: 24px; margin-top: 0; margin-bottom: 20px;">1. Route & Fleet Optimization</h3>
-            <p style="color: #333333; font-size: 18px; line-height: 1.6; margin-bottom: 20px;"><b>How to use the data:</b> How do we know the automated logic actually found the airports? <br><br>Compare the two maps on the right perfectly. The <b>Top Map</b> is a basic physical reference of where the NYC airports are. <br><br>The <b>Bottom Map</b> is the raw mathematical Cluster data (the green dots). Notice how the algorithm perfectly grew outward and autonomously mapped itself precisely to those three distinct airport zones without any human tags.</p>
-            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 20px 0;"></div>
-            <strong style="color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">✓ Direct Impact</strong>
-            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-top: 10px; margin-bottom: 0;">Dispatch algorithms can pre-position idle cars exactly at JFK <i>before</i> flights land to dramatically reduce empty driver miles.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        fig2 = px.bar(passenger_counts, x='Passengers', y='Percentage', text=passenger_counts['Percentage'].apply(lambda x: f"{x:.1f}%"), title="Passenger Volume Distribution (%)")
+        fig2.update_traces(marker_color="#000000", textposition='outside')
+        fig2.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0), xaxis=dict(type='category'))
+        st.plotly_chart(fig2, use_container_width=True)
     with col_b2:
-        icon_url = "https://img.icons8.com/m_sharp/200/000000/airport.png"
-        airport_df = pd.DataFrame({
-            'Name': ['JFK Airport', 'Newark Airport', 'LaGuardia'],
-            'lat': [40.6413, 40.6895, 40.7769],
-            'lon': [-73.7781, -74.1745, -73.8740]
-        })
-        icon_data = {
-            "url": icon_url,
-            "width": 200,
-            "height": 200,
-            "anchorY": 200,
-        }
-        airport_df['icon_data'] = [icon_data for _ in range(len(airport_df))]
-
-        icon_layer = pdk.Layer(
-            "IconLayer",
-            data=airport_df,
-            get_icon="icon_data",
-            get_size=150,
-            size_scale=1,
-            get_position="[lon, lat]",
-            pickable=True,
-            get_color="[0, 0, 0, 255]"
-        )
-
-        view_state = pdk.ViewState(
-            latitude=40.71,
-            longitude=-73.97,
-            zoom=8.5,
-            pitch=0,
-        )
-
-        st.markdown("#### Reference: New York City Airports")
-        st.pydeck_chart(pdk.Deck(
-            layers=[icon_layer],
-            initial_view_state=view_state,
-            tooltip={"text": "{Name}"},
-            map_style="light"
-        ))
-        
-        c0_df = df[df['cluster'] == "0: Airport / Long-Distance"].copy()
-        c0_df['Label'] = 'Automated Cluster 0 (The Green Dots)'
-        fig_air = px.scatter_mapbox(
-            c0_df, lat='pickup_latitude', lon='pickup_longitude', color='Label',
-            title='Proof: Strategic Airport Runs', mapbox_style="carto-positron",
-            color_discrete_sequence=["#06C167"], height=250, opacity=0.3
-        )
-        fig_air.update_layout(margin=dict(l=0, r=0, t=40, b=10))
-        st.plotly_chart(fig_air, use_container_width=True)
-        
-    st.markdown("<br><hr style='border:1px solid #E2E2E2;'><br>", unsafe_allow_html=True)
-
-    # STRATEGY 2: Dynamic Pricing
-    col_b3, col_b4 = st.columns([1.5, 1])
-    with col_b3:
-        cnumber = "7: Late-Night Party"
-        c7_df = df[df['cluster'] == cnumber].copy()
-        c7_demand = c7_df.groupby(c7_df['pickup_datetime'].dt.hour)['fare_amount'].count().reset_index()
-        c7_demand.columns = ['Hour of Day', 'Total Nightlife Trips']
-        fig_price = px.bar(c7_demand, x='Hour of Day', y='Total Nightlife Trips', title="1. Time: The 'Nightclub Surge' Peak (2:00 AM)", color_discrete_sequence=["#000000"])
-        fig_price.update_layout(height=250, margin=dict(l=0, r=0, t=40, b=0), xaxis=dict(tickmode='linear', tick0=0, dtick=1))
-        st.plotly_chart(fig_price, use_container_width=True)
-
-        c7_df['Label'] = 'Nightclubs / Entertainment Districts'
-        fig_night_map = px.scatter_mapbox(
-            c7_df, lat='pickup_latitude', lon='pickup_longitude', color='Label',
-            title='2. Geography: Deep Urban Hotspots', mapbox_style="carto-positron",
-            color_discrete_sequence=["#06C167"], height=350, opacity=0.8
-        )
-        fig_night_map.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig_night_map, use_container_width=True)
-    with col_b4:
         st.markdown("""
-        <div style="background-color: #F6F6F6; border-top: 6px solid #000000; padding: 30px; border-radius: 8px; height: 100%;">
-            <h3 style="color: #000000; font-size: 24px; margin-top: 0; margin-bottom: 20px;">2. Surgical Dynamic Pricing</h3>
-            <p style="color: #333333; font-size: 18px; line-height: 1.6; margin-bottom: 20px;"><b>How to use the data:</b> Look at the bar chart isolating the "Nightlife" cluster. There is an unmistakable, explosive spike right between 1:00 AM and 3:00 AM—this perfectly matches the time nightclubs close in Downtown Manhattan and Brooklyn.</p>
-            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 20px 0;"></div>
-            <strong style="color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">✓ Direct Impact</strong>
-            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-top: 10px; margin-bottom: 0;">Instead of turning practically all of NY into a "surge zone", we can literally geo-fence high prices instantly onto nightclub strips at 2:00 AM to capitalize on highly urgent, nightlife demand.</p>
+        <div style="background-color: #F6F6F6; border-top: 6px solid #000000; padding: 25px; border-radius: 8px; height: 100%;">
+            <h4 style="color: #000000; margin-top: 0;">Metric: Wasted Seat Ratio</h4>
+            <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> Over 69% of all trips consist of exactly 1 passenger. Using standard 4-seat sedans results in an average capacity utilization of just 25% per solo trip.</p>
+            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
+            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <p style="color: #333333; font-size: 16px; margin-top: 10px;"><b>Fleet Right-sizing:</b> Shift vehicle financing incentives toward ultra-compact or 2-seater EVs. Alternatively, massively subsidize "Uber Pool" algorithms to force consolidation of these solo riders, drastically cutting carbon footprint and operating costs.</p>
         </div>
         """, unsafe_allow_html=True)
-        
-    st.markdown("<br><hr style='border:1px solid #E2E2E2;'><br>", unsafe_allow_html=True)
 
-    # STRATEGY 3: Hyper-Targeted Marketing
-    col_b5, col_b6 = st.columns([1, 1.5])
-    with col_b5:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # STRATEGY 3: Distance vs Volume by Segment
+    st.markdown("### 3. The Volume vs. Distance Matrix")
+    col_c1, col_c2 = st.columns([1, 1.5])
+    with col_c1:
         st.markdown("""
-        <div style="background-color: #F6F6F6; border-top: 6px solid #333333; padding: 30px; border-radius: 8px; height: 100%;">
-            <h3 style="color: #000000; font-size: 24px; margin-top: 0; margin-bottom: 20px;">3. Target Marketing Demographics</h3>
-            <p style="color: #333333; font-size: 18px; line-height: 1.6; margin-bottom: 20px;"><b>How to use the data:</b> When you compare the <b>Large Vehicle users</b> against <b>Solo Commuters</b>, the passenger counts are fundamentally different (almost 5-to-1). They require vastly different advertising approaches.</p>
-            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 20px 0;"></div>
-            <strong style="color: #000000; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">✓ Direct Impact</strong>
-            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-top: 10px; margin-bottom: 0;">We can push 'UberXL' discounts purely to family demographic user IDs, while offering 'Business Commuter' flat rates specifically to the solo commuters.</p>
+        <div style="background-color: #F6F6F6; border-top: 6px solid #333333; padding: 25px; border-radius: 8px; height: 100%;">
+            <h4 style="color: #000000; margin-top: 0;">Metric: Cluster Economics</h4>
+            <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> This scatter plot isolates our ML clusters to compare their raw volume (X-axis) against their average distance (Y-axis), visualizing the dichotomy of the business model.</p>
+            <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
+            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <p style="color: #333333; font-size: 16px; margin-top: 10px;">Allocate marketing budget inversely to distance: Focus 80% of retention budget on the massive <b>short-distance urban clusters</b> (high frequency, high volume), and treat long-distance airport clusters purely as premium, un-discounted cash cows.</p>
         </div>
         """, unsafe_allow_html=True)
-    with col_b6:
-        c14_df = df[df['cluster'].isin(["1: Standard Weekday", "4: High Passenger / SUV"])].copy()
-        c14_df['Profile'] = c14_df['cluster'].map({"1: Standard Weekday": 'Solo Commuters', "4: High Passenger / SUV": 'Families / Group SUV'})
-        c14_avg = c14_df.groupby('Profile')['passenger_count'].mean().reset_index()
-        fig_market = px.bar(c14_avg, x='Profile', y='passenger_count', title="Demographic Targeting by Avg. Passengers", color_discrete_sequence=["#06C167", "#333333"])
-        fig_market.update_layout(height=500, margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig_market, use_container_width=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Deep Dive
-    with st.expander("🔍 Advanced Analytics & Deep Dive", expanded=False):
-        st.markdown("Understand the mathematical methodology behind the strategic implementations.")
-        st.markdown("""
-        <div style="background-color: #E8F5E9; border-left: 6px solid #06C167; padding: 25px; border-radius: 6px; margin-bottom: 35px;">
-            <p style="color: #333333; font-size: 20px; line-height: 1.6; margin-bottom: 0;">
-                <b style="font-size: 22px;">Wait, what is a "Smart Segment"?</b><br>
-                A segment is simply a mathematically generated group of trips that share identical real-world behaviors (such as traveling extremely long distances, or happening exclusively late at night in specific neighborhoods). By isolating these specific groups, we can physically see exactly where and when our business strategies should be deployed.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    with col_c2:
+        cluster_econ = df.groupby('cluster').agg({'distance_km': 'mean', 'fare_amount': 'count'}).reset_index()
+        cluster_econ.columns = ['Cluster', 'Avg Distance (km)', 'Total Trips']
+        # Shorten cluster names for chart
+        cluster_econ['Cluster Name'] = cluster_econ['Cluster'].apply(lambda x: x.split(':')[1].strip() if ':' in x else x)
         
+        fig3 = px.scatter(cluster_econ, x='Total Trips', y='Avg Distance (km)', color='Cluster Name', size='Total Trips', text='Cluster Name', title="Economic Matrix: Volume vs Distance")
+        fig3.update_traces(textposition='top center', marker=dict(line=dict(width=1, color='DarkSlateGrey')))
+        fig3.update_layout(height=400, margin=dict(l=0, r=0, t=40, b=0), showlegend=False)
+        # Ensure text is not clipped
+        fig3.update_yaxes(range=[0, cluster_econ['Avg Distance (km)'].max() * 1.3])
+        st.plotly_chart(fig3, use_container_width=True)
+
 else:
     st.info("Cluster data is required to view these insights. Please ensure you are loading 'uber_with_clusters.csv'.")
 
-
-from utils import render_footer
 render_footer()
