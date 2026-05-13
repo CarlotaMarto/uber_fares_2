@@ -41,7 +41,7 @@ with col2:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Deep Dive
-with st.expander("🔍 Advanced Analytics & Deep Dive", expanded=False):
+with st.expander("Advanced Analytics & Deep Dive", expanded=False):
     st.markdown("Explore mathematical edge-cases, statistical variances, and non-linear pricing anomalies.")
     
     deep_col1, deep_col2 = st.columns(2)

@@ -49,7 +49,7 @@ with col2:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Deep Dive
-with st.expander("🔍 Advanced Analytics & Deep Dive", expanded=False):
+with st.expander("Advanced Analytics & Deep Dive", expanded=False):
     st.markdown("Explore macroeconomic trends, pricing anomalies, and multi-year trajectory data.")
     
     tab1, tab2, tab3 = st.tabs(["Pricing Variance", "Monthly & Annual Growth", "Macro Trajectory"])
