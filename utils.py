@@ -34,18 +34,26 @@ def inject_custom_css():
     role_param = ""
     if user_type == "Uber User":
         role_param = "?role=user"
-    elif user_type == "Uber Owner":
+    elif user_type in ["Uber Owner", "Uber Analyst"]:
         role_param = "?role=owner"
 
+    logged_user = st.session_state.get('logged_in_user', '')
+    user_svg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><circle cx="12" cy="8" r="4"></circle><path d="M18 20v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="12" r="10"></circle></svg>'
+    
+    if logged_user:
+        user_display = f'<div style="display: flex; align-items: center; color: #FFFFFF; font-family: \'Inter\', sans-serif; font-size: 14px; font-weight: 500; opacity: 0.9; margin-left: 20px; border-left: 1px solid #333; padding-left: 20px;">{logged_user}{user_svg}</div>'
+    else:
+        user_display = f'<a href="?action=login" target="_self" style="display: flex; align-items: center; color: #FFFFFF; text-decoration: none; font-family: \'Inter\', sans-serif; font-size: 14px; font-weight: 500; opacity: 0.8; margin-left: 20px; border-left: 1px solid #333; padding-left: 20px;">Sign In{user_svg}</a>'
+
     if user_type == "Uber User":
-        nav_links = f'<a href="geospatial-hub{role_param}" target="_self" class="nav-link">Maps</a><a href="temporal-analysis{role_param}" target="_self" class="nav-link">Time</a><a href="distributions{role_param}" target="_self" class="nav-link">Prices</a><a href="segment-encyclopedia{role_param}" target="_self" class="nav-link">Profiles</a>'
-        right_button = ""
-    elif user_type == "Uber Owner":
-        nav_links = f'<a href="advanced-analysis{role_param}" target="_self" class="nav-link">Advanced</a><a href="business-strategy{role_param}" target="_self" class="nav-link">Strategy</a>'
-        right_button = f"""<a href="ride-simulator{role_param}" target="_self" class="btn-simulator">Ride Simulator</a>"""
+        nav_links = f'<a href="/{role_param}" target="_self" class="nav-link">About Us</a><a href="geospatial-hub{role_param}" target="_self" class="nav-link">Maps</a><a href="temporal-analysis{role_param}" target="_self" class="nav-link">Time</a><a href="distributions{role_param}" target="_self" class="nav-link">Prices</a><a href="segment-encyclopedia{role_param}" target="_self" class="nav-link">Profiles</a><span style="color: #555555; margin-right: 25px;">|</span><a href="savings{role_param}" target="_self" class="nav-link">Savings</a>'
+        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator">Ride Simulator</a>{user_display}</div>"""
+    elif user_type in ["Uber Owner", "Uber Analyst"]:
+        nav_links = f'<a href="/{role_param}" target="_self" class="nav-link">About Us</a><a href="geospatial-hub{role_param}" target="_self" class="nav-link">Maps</a><a href="temporal-analysis{role_param}" target="_self" class="nav-link">Time</a><a href="distributions{role_param}" target="_self" class="nav-link">Prices</a><a href="segment-encyclopedia{role_param}" target="_self" class="nav-link">Profiles</a><span style="color: #555555; margin-right: 25px;">|</span><a href="advanced-analysis{role_param}" target="_self" class="nav-link">Advanced</a><a href="business-strategy{role_param}" target="_self" class="nav-link">Strategy</a>'
+        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator">Ride Simulator</a>{user_display}</div>"""
     else:
         nav_links = ""
-        right_button = ""
+        right_button = f"""<div style="display: flex; align-items: center;">{user_display}</div>"""
 
     # Global Map Background
     bg_b64 = get_base64_bin_help("map_with_black_car_midright.png")
@@ -70,10 +78,20 @@ def inject_custom_css():
         [data-testid="collapsedControl"] {{display: none !important;}}
         [data-testid="stSidebar"] {{display: none !important;}}
         
-        /* Hide Streamlit structural branding */
+        /* Hide Streamlit structural branding and anchor links */
         #MainMenu {{visibility: hidden;}}
         header {{visibility: hidden;}}
         footer {{visibility: hidden;}}
+        .header-anchor, [data-testid="stHeaderAnchor"], [data-testid="stHeaderActionElements"], a.header-anchor, .st-header-anchor, .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {{display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;}}
+        
+        /* Plotly Modebar Customization: Hide Pan and Replace Camera with Download Arrow */
+        a[data-title*="Pan"], .modebar-btn[data-title*="Pan"] {{display: none !important;}}
+        a[data-title*="Download"] svg, .modebar-btn[data-title*="Download"] svg {{display: none !important;}}
+        a[data-title*="Download"]::before, .modebar-btn[data-title*="Download"]::before {{content: "⬇" !important; font-size: 16px !important; font-weight: bold !important; padding: 0 4px !important; color: #333333 !important;}}
+        
+        /* Streamlit Tabs Customization: Override default red highlight with cyan/blue */
+        div[data-testid="stTabs"] button[aria-selected="true"] {{color: #0ea5e9 !important; border-bottom-color: #0ea5e9 !important;}}
+        div[data-testid="stTabs"] button:hover {{color: #0ea5e9 !important; border-bottom-color: rgba(14, 165, 233, 0.5) !important;}}
         
         /* Remove padding around the main block */
         .block-container {{
@@ -198,10 +216,12 @@ def inject_custom_css():
         </style>
         """, unsafe_allow_html=True)
     logo_b64 = get_base64_bin_help("uber_logo.jpg")
+    mime = "jpeg"
     if not logo_b64:
         logo_b64 = get_base64_bin_help("uber_logo.png")
+        mime = "png"
     
-    logo_html = f"<img src='data:image/jpeg;base64,{logo_b64}' style='height: 24px; margin-right: 8px; border-radius: 4px;'/>" if logo_b64 else ""
+    logo_html = f"<img src='data:image/{mime};base64,{logo_b64}' style='height: 32px; margin-right: 8px; border-radius: 4px;'/>" if logo_b64 else ""
 
     st.markdown(f"""
 <div class="uber-navbar" style="justify-content: space-between;">
@@ -242,7 +262,7 @@ def render_footer():
         st.markdown("**Ivo Bernardo**<br>Machine Learning II", unsafe_allow_html=True)
         
     with f_col4:
-        st.image("uber_logo.jpg", width=120)
+        st.image("uber_logo.png", width=120)
         st.caption("This project is optimized for executive-level business intelligence and strategic decision making.")
         
     st.markdown("<br>", unsafe_allow_html=True)

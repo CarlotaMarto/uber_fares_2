@@ -4,7 +4,7 @@ from utils import load_data, inject_custom_css
 
 st.set_page_config(
     page_title="Uber Fare Explorer",
-    page_icon="uber_logo.jpg",
+    page_icon="uber_logo.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )

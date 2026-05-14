@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from utils import load_data, render_footer
+from utils import load_data, render_footer, get_base64_bin_help
 
 df = load_data()
 
@@ -79,7 +79,6 @@ div.stButton > button:hover {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -91,7 +90,7 @@ import datetime
 
 col_time, _ = st.columns([1, 2])
 with col_time:
-    time_choice = st.selectbox("When do you want to travel?", ["⏱️ Pickup now", "📅 Schedule for later"], label_visibility="collapsed")
+    time_choice = st.selectbox("When do you want to travel?", ["Pickup now", "Schedule for later"], label_visibility="collapsed")
     
     simulated_hour = datetime.datetime.now().hour
     if "Schedule" in time_choice:
@@ -147,19 +146,21 @@ if st.button("See prices"):
                 surge_msg = "Late Night Surge Applied (+30%)"
             else:
                 surge = 1.0
-                surge_msg = "Standard Time (No Surge)"
+                surge_msg = "Standard Time"
                 
             estimated_price = (base_fare + (distance_km * per_km)) * surge
             
             st.markdown("---")
-            st.markdown(f"**Estimated Trip:** {distance_km:.1f} km • ~{duration_min} min drive")
-            st.caption(f"⚡ {surge_msg}")
+            st.markdown(f"**Estimated Trip:** {distance_km:.1f} km ≈ {duration_min} min drive")
+            st.caption(surge_msg)
             
             # Render Fare Cards
+            logo_b64 = get_base64_bin_help('uber_logo.png')
+            logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 18px;"/>' if logo_b64 else 'UberX'
             st.markdown(f"""
             <div class="fare-card" style="border-left: 6px solid #06C167;">
                 <div style="display: flex; gap: 15px; align-items: center;">
-                    <div class="car-image">🚗</div>
+                    <div class="car-image">{logo_img_tag}</div>
                     <div>
                         <div style="font-weight: 700; font-size: 18px;">Estimated Fare</div>
                         <div style="color: #666666; font-size: 14px;">Based on historical model data</div>
@@ -169,7 +170,7 @@ if st.button("See prices"):
             </div>
             """, unsafe_allow_html=True)
             
-            st.success("✅ Price successfully generated based on historical data!")
+            st.success("(Price successfully generated based on historical data.)")
 
 
 render_footer()
