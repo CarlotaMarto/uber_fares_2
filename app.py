@@ -84,7 +84,7 @@ if st.session_state.get('auth_success', False):
         user_type = st.session_state.get('user_type', 'User')
         send_welcome_email(user_email, user_name, site_url, user_type)
         if user_email:
-            st.toast("Check your email box!", icon=" ")
+            st.toast("Check your email box!")
         st.session_state['just_authenticated'] = False
         
     # Reset it so it doesn't stay forever, but we need it to be False eventually.
