@@ -347,7 +347,7 @@ The Uber Fare Explorer Team"""
                 if pdf_path and os.path.exists(pdf_path):
                     with open(pdf_path, "rb") as f:
                         pdf_data = f.read()
-                    msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename='Executive_Insights_Report.pdf')
+                    msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename='Analyst_Executive_Report.pdf')
             except Exception as e:
                 print(f"Could not generate/attach PDF: {e}")
         
