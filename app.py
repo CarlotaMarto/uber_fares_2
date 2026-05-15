@@ -80,7 +80,7 @@ if st.session_state.get('auth_success', False):
         from utils import send_welcome_email
         user_email = st.session_state.get('user_email', '')
         user_name = st.session_state.get('logged_in_user', 'Jane Doe')
-        site_url = "https://uber-fare-explorer.streamlit.app" 
+        site_url = "https://uberfares2-bwwu3ppswfnzujfisnbeoc.streamlit.app/" 
         user_type = st.session_state.get('user_type', 'User')
         send_welcome_email(user_email, user_name, site_url, user_type)
         if user_email:
