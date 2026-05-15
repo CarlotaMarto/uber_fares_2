@@ -29,7 +29,7 @@ if all(c in df.columns for c in corr_cols):
         corr = df[corr_cols].corr().round(2)
         fig_heatmap = px.imshow(corr, text_auto=True, aspect="auto", color_continuous_scale="Greens")
         fig_heatmap.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+        st.plotly_chart(fig_heatmap, use_container_width=True, config={'scrollZoom': True})
     with col_hm_text:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("**Insight: Linear Relationships**")
@@ -50,7 +50,7 @@ if os.path.exists(pca_file):
         uber_palette = ["#06C167", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#1f7a46", "#048043"]
         fig_pca = px.scatter(pca_df, x="pca_x", y="pca_y", color=pca_df['cluster'].astype(str), color_discrete_sequence=uber_palette, opacity=0.5)
         fig_pca.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-        st.plotly_chart(fig_pca, use_container_width=True)
+        st.plotly_chart(fig_pca, use_container_width=True, config={'scrollZoom': True})
     with col_pca_text:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("**Insight: Mathematical Separation**")

@@ -42,7 +42,7 @@ if map_view == "Segment Mapping (Clusters)":
         height=600, color_discrete_sequence=uber_palette, zoom=10, mapbox_style="carto-positron"
     )
     fig_cluster.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(fig_cluster, use_container_width=True)
+    st.plotly_chart(fig_cluster, use_container_width=True, config={'scrollZoom': True})
 else:
     fig_density = px.density_mapbox(
         df, lat='pickup_latitude', lon='pickup_longitude', z='fare_amount', radius=8,
@@ -51,7 +51,7 @@ else:
         color_continuous_scale="Greens", height=600, labels={'fare_amount': 'Fare ($)'}
     )
     fig_density.update_layout(margin=dict(l=0, r=0, t=40, b=0), coloraxis_colorbar=dict(title="Fare ($)", tickprefix="$"))
-    st.plotly_chart(fig_density, use_container_width=True)
+    st.plotly_chart(fig_density, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -74,7 +74,7 @@ with st.expander("Advanced Analytics & Deep Dive", expanded=False):
     fig_map.update_layout(margin=dict(l=0, r=0, t=40, b=0))
     fig_map.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 800
     
-    st.plotly_chart(fig_map, use_container_width=True)
+    st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
     st.caption("Hit the Play button to watch ridership demand flow dynamically. Notice how the morning rush explicitly starts pulling heavily from outside boroughs, before collapsing entirely back into Manhattan's core for the evening peak.")
 
 

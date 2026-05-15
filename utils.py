@@ -86,8 +86,7 @@ def inject_custom_css():
         footer {{visibility: hidden;}}
         .header-anchor, [data-testid="stHeaderAnchor"], [data-testid="stHeaderActionElements"], a.header-anchor, .st-header-anchor, .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {{display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;}}
         
-        /* Plotly Modebar Customization: Hide Pan and Replace Camera with Download Arrow */
-        a[data-title*="Pan"], .modebar-btn[data-title*="Pan"] {{display: none !important;}}
+        /* Plotly Modebar Customization: Replace Camera with Download Arrow */
         a[data-title*="Download"] svg, .modebar-btn[data-title*="Download"] svg {{display: none !important;}}
         a[data-title*="Download"]::before, .modebar-btn[data-title*="Download"]::before {{content: "⬇" !important; font-size: 16px !important; font-weight: bold !important; padding: 0 4px !important; color: #333333 !important;}}
         
