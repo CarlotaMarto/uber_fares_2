@@ -340,6 +340,17 @@ The Uber Fare Explorer Team"""
                     subtype = 'jpeg' if ext == 'jpg' else ext
                     msg.add_attachment(img_data, maintype='image', subtype=subtype, filename=f'Voucher_10_OFF.{ext}')
                     break
+        elif user_type == "Uber Analyst":
+            import os
+            try:
+                from report_generator import create_executive_pdf_report
+                pdf_path = create_executive_pdf_report(user_name)
+                if pdf_path and os.path.exists(pdf_path):
+                    with open(pdf_path, "rb") as f:
+                        pdf_data = f.read()
+                    msg.add_attachment(pdf_data, maintype='application', subtype='pdf', filename='Executive_Insights_Report.pdf')
+            except Exception as e:
+                print(f"Could not generate/attach PDF: {e}")
         
         msg['Subject'] = subject
         msg['From'] = smtp_user
