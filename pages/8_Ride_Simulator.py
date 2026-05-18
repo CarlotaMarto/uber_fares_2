@@ -391,26 +391,78 @@ if st.session_state.get('prices_calculated', False):
     st.markdown("---")
     st.markdown(f"**Estimated Trip:** {distance_km:.1f} km ≈ {duration_min} min drive")
     st.caption(surge_msg)
-    
-    # 1. Render the invisible overlay button first with class 'overlay-button-container'
-    st.markdown('<div class="overlay-button-container">', unsafe_allow_html=True)
-    if st.button("Open Map Overlay", key="open_map_overlay_btn", use_container_width=True):
-        simulated_hour = st.session_state.get('sim_hour', simulated_hour)
-        show_map_dialog(distance_km, simulated_hour, estimated_price, origem, destino)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 2. Render the physical card matching the exact same container coordinates
+
+    simulated_hour = st.session_state.get('sim_hour', simulated_hour)
+
+    # ── Toggle state ───────────────────────────────────────────────────────────
+    if 'show_map' not in st.session_state:
+        st.session_state['show_map'] = False
+    show_map = st.session_state.get('show_map', False)
+    map_arrow = "▲ hide map" if show_map else "▼ click here to view map"
+
+    # ── Fare card ──────────────────────────────────────────────────────────────
     st.markdown(f"""
-    <div class="card-container-wrapper">
-        <div class="fare-card">
+    <div style="
+        border-left: 6px solid #06C167;
+        background-color: #FFFFFF;
+        border-top: 1px solid #E2E2E2;
+        border-right: 1px solid #E2E2E2;
+        border-bottom: 1px solid #E2E2E2;
+        border-radius: 12px;
+        padding: 22px 28px 18px 28px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        margin-bottom: 0;
+    ">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <div style="font-weight: 700; font-size: 20px; color: #000000; font-family: sans-serif;">Estimated Fare</div>
-                <div style="color: #666666; font-size: 14px; font-family: sans-serif;">Based on historical model data • click to view on map</div>
+                <div style="font-weight:700; font-size:20px; color:#000000; font-family:sans-serif;">Estimated Fare</div>
+                <div style="color:#888888; font-size:13px; font-family:sans-serif; margin-top:4px;">
+                    Based on historical model data
+                </div>
             </div>
-            <div style="font-weight: 700; font-size: 32px; color: #06C167; font-family: sans-serif;">€{estimated_price:.2f}</div>
+            <div style="font-weight:700; font-size:36px; color:#06C167; font-family:sans-serif;">€{estimated_price:.2f}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── Green link-style toggle button ─────────────────────────────────────────
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"].map-toggle > button {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #06C167 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 4px 0 0 28px !important;
+        margin: 0 !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+    }
+    div[data-testid="stButton"].map-toggle > button:hover {
+        color: #04a356 !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        text-decoration: underline !important;
+    }
+    div[data-testid="stButton"].map-toggle > button:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="map-toggle">', unsafe_allow_html=True)
+    if st.button(map_arrow, key="map_toggle_btn"):
+        st.session_state['show_map'] = not show_map
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── Map revealed on toggle ─────────────────────────────────────────────────
+    if st.session_state.get('show_map', False):
+        render_map_inside(distance_km, simulated_hour, estimated_price, origem, destino)
 
 render_footer()
 

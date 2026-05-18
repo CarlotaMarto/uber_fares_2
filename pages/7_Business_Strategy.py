@@ -19,40 +19,7 @@ passenger_counts.columns = ['Passengers', 'Trips']
 passenger_counts['Percentage'] = (passenger_counts['Trips'] / len(df)) * 100
 passenger_counts = passenger_counts.sort_values('Passengers')
 
-st.divider()
 
-# Download Report Section for Analysts
-st.markdown("""
-<div style="background-color: #000000; padding: 25px; border-radius: 12px; border: 1px solid #333333; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-    <div style="flex: 1;">
-        <h3 style="color: #FFFFFF; margin: 0; font-size: 20px;">Download Executive Insights Report</h3>
-        <p style="color: #888888; margin: 5px 0 0 0; font-size: 14px;">Get a professional, high-fidelity PDF summary of all machine learning clusters and business strategies.</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# We use a column to center the real streamlit button over the CSS card or just put it below
-col_rep1, col_rep2, col_rep3 = st.columns([1, 1, 1])
-with col_rep2:
-    if st.button("GENERATE PDF REPORT", type="primary", use_container_width=True):
-        with st.spinner("Compiling Analytics..."):
-            from report_generator import create_executive_pdf_report
-            user_name = st.session_state.get('logged_in_user', 'Uber Analyst')
-            pdf_path = create_executive_pdf_report(user_name)
-            if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, "rb") as f:
-                    st.download_button(
-                        label="DOWNLOAD PDF NOW",
-                        data=f,
-                        file_name="Uber_Executive_Report.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-                st.success("Report generated successfully!")
-            else:
-                st.error("Failed to generate report. Please check data files.")
-
-st.divider()
 
 if 'cluster' in df.columns:
     # STRATEGY 1: Profitability Optimization (€/km)

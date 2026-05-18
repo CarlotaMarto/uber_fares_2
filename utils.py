@@ -30,25 +30,76 @@ def get_base64_bin_help(bin_file):
     return base64.b64encode(data).decode()
 
 def inject_custom_css(active_page=None):
+    import urllib.parse
     user_type = st.session_state.get('user_type', '')
-    role_param = ""
+    logged_user = st.session_state.get('logged_in_user', '')
+    user_email  = st.session_state.get('user_email', '')
+
+    # Build the query-string that every nav link will carry so app.py can
+    # restore the session on every page navigation (full browser reload).
+    role_val = ""
     if user_type == "Uber User":
-        role_param = "?role=user"
+        role_val = "user"
     elif user_type in ["Uber Owner", "Uber Analyst"]:
-        role_param = "?role=owner"
+        role_val = "owner"
+
+    qs_parts = []
+    if role_val:
+        qs_parts.append(f"role={role_val}")
+    if logged_user:
+        qs_parts.append(f"logged_in_user={urllib.parse.quote(logged_user)}")
+    if user_email:
+        qs_parts.append(f"user_email={urllib.parse.quote(user_email)}")
+    if user_type:
+        qs_parts.append(f"user_type={urllib.parse.quote(user_type)}")
+
+    role_param = ("?" + "&".join(qs_parts)) if qs_parts else ""
 
     if active_page is None:
+        # Primary: read the currently-running script path from Streamlit context
         try:
             from streamlit.runtime.scriptrunner import get_script_run_ctx
-            from streamlit.source_util import get_pages
             ctx = get_script_run_ctx()
             if ctx is not None:
-                pages = get_pages("")
-                page_info = pages.get(ctx.page_script_hash, {})
-                active_page = page_info.get("url_path", None)
-                if active_page is None:
-                    pname = page_info.get("page_name", "")
-                    if "0_Home" in pname or "Home" in pname:
+                script_path = getattr(ctx, "script_path", "") or ""
+                script_name = os.path.basename(script_path).lower()
+                if "0_home" in script_name or script_name == "app.py":
+                    active_page = "home"
+                elif "1_distributions" in script_name:
+                    active_page = "distributions"
+                elif "2_temporal" in script_name:
+                    active_page = "temporal-analysis"
+                elif "3_segment" in script_name:
+                    active_page = "segment-encyclopedia"
+                elif "4_geospatial" in script_name:
+                    active_page = "geospatial-hub"
+                elif "5_backend" in script_name:
+                    active_page = "backend"
+                elif "6_advanced" in script_name:
+                    active_page = "advanced-analysis"
+                elif "7_business" in script_name:
+                    active_page = "business-strategy"
+                elif "8_ride" in script_name:
+                    active_page = "ride-simulator"
+                elif "9_savings" in script_name:
+                    active_page = "savings"
+        except Exception:
+            pass
+
+        # Fallback: use get_pages() page_name if script_path wasn't available
+        if active_page is None:
+            try:
+                from streamlit.runtime.scriptrunner import get_script_run_ctx
+                from streamlit.source_util import get_pages
+                ctx = get_script_run_ctx()
+                if ctx is not None:
+                    pages = get_pages("")
+                    page_info = pages.get(ctx.page_script_hash, {})
+                    pname = page_info.get("page_name", "") or ""
+                    url_path = page_info.get("url_path", None)
+                    if url_path:
+                        active_page = url_path
+                    elif "0_Home" in pname or pname == "Home":
                         active_page = "home"
                     elif "1_Distributions" in pname or "distributions" in pname.lower():
                         active_page = "distributions"
@@ -68,10 +119,9 @@ def inject_custom_css(active_page=None):
                         active_page = "ride-simulator"
                     elif "9_Savings" in pname or "savings" in pname.lower():
                         active_page = "savings"
-        except Exception:
-            pass
+            except Exception:
+                pass
 
-    logged_user = st.session_state.get('logged_in_user', '')
     user_svg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><circle cx="12" cy="8" r="4"></circle><path d="M18 20v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="12" r="10"></circle></svg>'
     
     if logged_user:
@@ -82,7 +132,8 @@ def inject_custom_css(active_page=None):
         user_display = ""
 
     def get_link_html(href, text, page_key):
-        is_active = (active_page == page_key or (page_key == "home" and active_page in [None, "", "home"]))
+        # Only mark "home" active when we explicitly know we're on home — never as a fallback for None
+        is_active = (active_page == page_key or (page_key == "home" and active_page == "home"))
         active_class = " active" if is_active else ""
         return f'<a href="{href}" target="_self" class="nav-link{active_class}">{text}</a>'
 
@@ -157,7 +208,7 @@ def inject_custom_css(active_page=None):
         /* Remove padding around the main block */
         .block-container {{
             padding-top: 80px !important;
-            padding-bottom: 0rem !important;
+            padding-bottom: 80px !important;
         }}
         
         /* Dedicated full-width Uber Website Navbar */
@@ -295,24 +346,24 @@ def inject_custom_css(active_page=None):
             border-radius: 1px;
         }}
         
-        /* Custom styling for all st.expander to have a gorgeous, opaque beige background */
+        /* Custom styling for all st.expander — solid opaque near-white warm background, no fading corners */
         div[data-testid="stExpander"] {{
-            background-color: #FAF5EF !important;
-            border: 1px solid #DCD7CD !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+            background-color: #FEFCFA !important;
+            border: 1px solid #E8E2DA !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
         }}
         div[data-testid="stExpander"] details {{
-            background-color: #FAF5EF !important;
-            border-radius: 12px !important;
+            background-color: #FEFCFA !important;
+            border-radius: 4px !important;
         }}
         div[data-testid="stExpander"] details summary {{
-            background-color: #FAF5EF !important;
-            border-radius: 12px 12px 0 0 !important;
+            background-color: #FEFCFA !important;
+            border-radius: 4px 4px 0 0 !important;
         }}
         div[data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
-            background-color: #FAF5EF !important;
-            border-radius: 0 0 12px 12px !important;
+            background-color: #FEFCFA !important;
+            border-radius: 0 0 4px 4px !important;
         }}
         </style>
         """, unsafe_allow_html=True)

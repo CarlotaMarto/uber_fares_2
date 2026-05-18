@@ -8,9 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, silhouette_samples
-from utils import load_data, inject_custom_css, render_footer
-
-inject_custom_css("backend")
+from utils import load_data, render_footer
+import os
 
 # ─── Cluster colour palette ───────────────────────────────────────────────────
 CLUSTER_COLORS = {
@@ -30,7 +29,7 @@ st.markdown("""
   <p style="font-size:13px;letter-spacing:.2em;text-transform:uppercase;
             color:#0ea5e9;font-weight:800;margin-bottom:12px;">Analyst · ML Documentation</p>
   <h1 style="font-size:42px;font-weight:900;color:#0f172a;margin:0 0 16px;">
-    🧠 Clustering Backend
+    Clustering Backend
   </h1>
   <p style="font-size:18px;color:#475569;max-width:720px;line-height:1.7;margin:0;">
     A technical walkthrough of the two unsupervised learning algorithms applied to
@@ -40,12 +39,35 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ─── Original Dataset View ───────────────────────────────────────────────────
+st.markdown("### Original Dataset Preview (First 5 Rows)")
+st.markdown(
+    "Below is a preview of the first 5 rows and all columns of the original dataset "
+    "loaded into the analytical pipeline before preprocessing, feature scaling, and cluster assignment."
+)
+
+try:
+    raw_path = "uber.csv" if os.path.exists("uber.csv") else "uber_cleaned.csv"
+    raw_df = pd.read_csv(raw_path, nrows=5)
+    st.dataframe(raw_df, use_container_width=True)
+except Exception as e:
+    st.error(f"Error loading original dataset preview: {e}")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
 # ─── Load data + compute ───────────────────────────────────────────────────────
 @st.cache_data(show_spinner="⚙️  Running ML pipeline on the dataset…")
 def build_ml_artifacts(sample_n: int = 30_000):
     df = load_data()
     FEATURES = ["distance_km", "pickup_hour", "fare_per_km", "passenger_count"]
     df2 = df[FEATURES + ["cluster"]].dropna()
+    # load_data() converts cluster numbers to strings like "1: Standard Weekday"
+    # Extract the leading number (works for both int and "N: Label" formats)
+    df2["cluster"] = (
+        df2["cluster"]
+        .astype(str)
+        .str.extract(r"^(\d+)", expand=False)
+    )
     df2["cluster"] = pd.to_numeric(df2["cluster"], errors="coerce")
     df2 = df2.dropna(subset=["cluster"])
     df2["cluster"] = df2["cluster"].astype(int)
@@ -103,23 +125,26 @@ art = build_ml_artifacts()
 
 # ─── Pipeline overview ────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## 🔁 ML Pipeline")
+st.markdown("## ML Pipeline")
 
 cols = st.columns(6)
 steps = [
-    ("1️⃣", "Load", "191 K trips from CSV"),
-    ("2️⃣", "Clean", "Drop nulls & bad coords"),
-    ("3️⃣", "Engineer", "distance, hour, fare/km"),
-    ("4️⃣", "Scale", "StandardScaler"),
-    ("5️⃣", "PCA", "4D → 2D reduction"),
-    ("6️⃣", "K-Means", "k=8 final clusters"),
+    ("1", "Load", "191 K trips from CSV"),
+    ("2", "Clean", "Drop nulls & bad coords"),
+    ("3", "Engineer", "distance, hour, fare/km"),
+    ("4", "Scale", "StandardScaler"),
+    ("5", "PCA", "4D → 2D reduction"),
+    ("6", "K-Means", "k=8 final clusters"),
 ]
 for col, (icon, title, desc) in zip(cols, steps):
     with col:
         st.markdown(f"""
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;
                     padding:14px;text-align:center;min-height:130px;">
-          <div style="font-size:26px;">{icon}</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;
+                      width:36px;height:36px;border-radius:50%;
+                      background:#06C167;color:#fff;
+                      font-size:16px;font-weight:800;">{icon}</div>
           <div style="font-weight:700;color:#0f172a;font-size:12px;margin:6px 0 3px;">{title}</div>
           <div style="color:#64748b;font-size:11px;line-height:1.4;">{desc}</div>
         </div>""", unsafe_allow_html=True)
@@ -128,18 +153,18 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ─── Features ─────────────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## 📐 Features Used")
+st.markdown("## Features Used")
 
 feat_df = pd.DataFrame({
     "Feature":     ["distance_km", "pickup_hour", "fare_per_km", "passenger_count"],
     "Description": [
-        "Haversine distance pickup → drop-off (km)",
-        "Hour the ride started (0–23)",
-        "Fare ÷ distance — price-efficiency signal",
+        "Haversine distance pickup to drop-off (km)",
+        "Hour the ride started (0-23)",
+        "Fare divided by distance -- price-efficiency signal",
         "Number of passengers",
     ],
     "Rationale": [
-        "Primary cost driver — separates short urban hops from long rides",
+        "Primary cost driver -- separates short urban hops from long rides",
         "Captures demand patterns: rush hour, night, off-peak",
         "Flags surge, airport, and premium routes",
         "Distinguishes solo vs. group travel behaviour",
@@ -147,18 +172,18 @@ feat_df = pd.DataFrame({
 })
 st.dataframe(feat_df, use_container_width=True, hide_index=True)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ALGORITHM 1 — PCA
-# ═══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
+# ALGORITHM 1 -- PCA
+# ==============================================================================
 st.markdown("---")
-st.markdown("## 🔬 Algorithm 1 — PCA (Principal Component Analysis)")
+st.markdown("## Algorithm 1 -- PCA (Principal Component Analysis)")
 st.markdown("""
 PCA projects the four standardised features into a **lower-dimensional space** that
 maximises explained variance. Here we reduce to **2 principal components** so that the
 cluster structure can be visualised in a 2-D scatter plot.
 """)
 
-tab_scatter, tab_var = st.tabs(["🗺️  2-D Cluster Map (PCA)", "📊 Explained Variance"])
+tab_scatter, tab_var = st.tabs(["2-D Cluster Map (PCA)", "Explained Variance"])
 
 with tab_scatter:
     df_plot = pd.DataFrame({
@@ -170,16 +195,30 @@ with tab_scatter:
 
     fig_sc = go.Figure()
     for cid in sorted(df_plot["Cluster"].unique()):
-        sub = df_plot[df_plot["Cluster"] == cid]
+        sub   = df_plot[df_plot["Cluster"] == cid]
+        color = CLUSTER_COLORS.get(cid, "#888")
+        label = f"C{cid}: {CLUSTER_LABELS.get(cid, '')}"
+
+        # Real scatter dots -- small, no legend entry
         fig_sc.add_trace(go.Scatter(
             x=sub["PC1"], y=sub["PC2"],
             mode="markers",
-            marker=dict(size=3, color=CLUSTER_COLORS.get(cid, "#888"), opacity=0.55),
-            name=f"C{cid}: {CLUSTER_LABELS.get(cid, '')}",
+            marker=dict(size=3, color=color, opacity=0.55),
+            name=label,
+            showlegend=False,
             hovertemplate=(
-                f"<b>C{cid} — {CLUSTER_LABELS.get(cid,'')}</b><br>"
+                f"<b>C{cid} -- {CLUSTER_LABELS.get(cid, '')}</b><br>"
                 "PC1: %{x:.2f}<br>PC2: %{y:.2f}<extra></extra>"
             ),
+        ))
+        # Legend-only proxy -- large dot so colors are clearly visible
+        fig_sc.add_trace(go.Scatter(
+            x=[None], y=[None],
+            mode="markers",
+            marker=dict(size=14, color=color),
+            name=label,
+            showlegend=True,
+            legendrank=cid,
         ))
 
     ex1 = art["explained"][0] * 100
@@ -192,10 +231,17 @@ with tab_scatter:
         plot_bgcolor="white", paper_bgcolor="white",
         xaxis=dict(gridcolor="#f1f5f9"),
         yaxis=dict(gridcolor="#f1f5f9"),
-        legend=dict(title="Segment", x=1.01),
+        legend=dict(
+            title="Segment",
+            x=1.01,
+            itemsizing="constant",
+            font=dict(size=12),
+            tracegroupgap=2,
+        ),
     )
     st.plotly_chart(fig_sc, use_container_width=True)
-    st.caption(f"Sample of {len(art['sample']):,} trips plotted · Each dot is one trip coloured by its K-Means cluster.")
+    st.caption(f"Sample of {len(art['sample']):,} trips plotted. Each dot is one trip coloured by its K-Means cluster.")
+
 
 with tab_var:
     n_comp = len(art["cumvar"])
@@ -226,21 +272,35 @@ with tab_var:
     st.plotly_chart(fig_var, use_container_width=True)
 
     ex_total = art["explained"][:2].sum() * 100
-    st.info(f"🔍 **PC1 + PC2 explain {ex_total:.1f}% of the total variance** — sufficient to visualise the main cluster structure.")
     st.markdown("""
-**How PCA works step-by-step:**
-1. Standardise all features to zero mean and unit variance
-2. Compute the **covariance matrix** of the standardised features
-3. Extract **eigenvectors** (principal components) ordered by eigenvalue
-4. Project each trip onto the top-2 eigenvectors → 2-D coordinates
-5. Plot — trips that cluster together in 4-D appear close in 2-D
+Principal Component Analysis, or PCA, is a mathematical technique that takes a dataset with many
+variables and compresses it into a smaller number of new variables — called principal components —
+while preserving as much of the original information as possible.
+
+In this project, each Uber trip is described by four features: distance in km, the hour of pickup,
+the fare per km, and the passenger count. PCA begins by standardising all four features so that
+none of them dominates simply because of its scale. It then computes a covariance matrix, which
+captures how strongly each pair of features moves together across the dataset.
+
+From that matrix, PCA extracts a set of eigenvectors — these are the principal components.
+Each one points in the direction of maximum remaining variance in the data. The first component (PC1)
+captures the single direction that explains the most spread; the second (PC2) captures the most
+remaining spread while being mathematically perpendicular to PC1. Together, PC1 and PC2 in this
+dataset account for approximately 55% of the total variance.
+
+Finally, every trip is projected onto these two new axes, producing a 2-D coordinate for each
+ride. What you see in the scatter plot above is that projection: trips that were similar across
+all four original dimensions end up close together in 2-D space, while dissimilar trips appear
+far apart. The coloured clusters you see are the K-Means groups — and the fact that they remain
+visually separated in PCA space confirms that K-Means found genuinely distinct, non-overlapping
+rider profiles rather than arbitrary groupings.
     """)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ALGORITHM 2 — K-MEANS
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown("---")
-st.markdown("## 🎯 Algorithm 2 — K-Means Clustering")
+st.markdown("## Algorithm 2 — K-Means Clustering")
 st.markdown("""
 K-Means partitions the **standardised 4-D feature space** into *k* groups by minimising
 **within-cluster sum of squares (WCSS)**. The optimal *k* was selected using the
@@ -248,7 +308,7 @@ Elbow Method and Silhouette Score.
 """)
 
 tab_elbow, tab_sil, tab_dist = st.tabs(
-    ["📉 Elbow Method", "🔬 Silhouette Analysis", "📦 Cluster Distribution"]
+    ["Elbow Method", "Silhouette Analysis", "Cluster Distribution"]
 )
 
 with tab_elbow:
@@ -376,7 +436,7 @@ with tab_dist:
 
 # ─── How K-Means works ────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## ⚙️  How K-Means Works — Step by Step")
+st.markdown("## How K-Means Works — Step by Step")
 c1, c2 = st.columns([1, 1])
 with c1:
     st.markdown("""
@@ -395,17 +455,17 @@ with c2:
     st.markdown("""
 **Why K-Means suits this dataset:**
 
-- ✅ Scales to 191 K rows in seconds
-- ✅ Produces compact, interpretable centroids → rider profiles
-- ✅ Silhouette Score **0.39** confirms good cluster separation
-- ✅ Clusters are roughly convex in standardised feature space
-- ⚠️ Assumes equal-variance spherical clusters — acceptable given the data distribution
-- ⚠️ Sensitive to outliers → pre-cleaning removed invalid fares/coordinates
+- Scales to 191 K rows in seconds
+- Produces compact, interpretable centroids → rider profiles
+- Silhouette Score **0.39** confirms good cluster separation
+- Clusters are roughly convex in standardised feature space
+- Assumes equal-variance spherical clusters — acceptable given the data distribution
+- Sensitive to outliers → pre-cleaning removed invalid fares/coordinates
     """)
 
 # ─── Comparison table ─────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## 📊 Algorithm Comparison")
+st.markdown("## Algorithm Comparison")
 
 comp = pd.DataFrame({
     "Property":     ["Type", "Goal", "Parameters", "Complexity", "Applied to", "Output", "Score"],
@@ -432,7 +492,7 @@ st.dataframe(comp.set_index("Property"), use_container_width=True)
 
 # ─── Segment glossary ─────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## 📖 Cluster Segment Glossary")
+st.markdown("## Cluster Segment Glossary")
 
 glossary = [
     (1,"Standard Commuter",    "#0ea5e9", "Short-to-medium daytime rides. Backbone of the platform (33 %)."),
