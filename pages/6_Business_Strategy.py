@@ -42,7 +42,7 @@ with col_rep2:
             if pdf_path and os.path.exists(pdf_path):
                 with open(pdf_path, "rb") as f:
                     st.download_button(
-                        label="⬇️ DOWNLOAD PDF NOW",
+                        label="DOWNLOAD PDF NOW",
                         data=f,
                         file_name="Uber_Executive_Report.pdf",
                         mime="application/pdf",
@@ -55,7 +55,7 @@ with col_rep2:
 st.divider()
 
 if 'cluster' in df.columns:
-    # STRATEGY 1: Profitability Optimization ($/km)
+    # STRATEGY 1: Profitability Optimization (€/km)
     st.markdown("### 1. Profitability Optimization (Fare per KM)")
     col_a1, col_a2 = st.columns([1, 1.5])
     with col_a1:
@@ -64,14 +64,14 @@ if 'cluster' in df.columns:
             <h4 style="color: #000000; margin-top: 0;">Metric: Average Fare per Kilometer</h4>
             <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> By calculating `fare_amount / distance_km`, we identify exactly which hours yield the highest profit margins for drivers, regardless of the total distance driven.</p>
             <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
-            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <strong style="color: #000000; text-transform: uppercase;">Actionable Strategy</strong>
             <p style="color: #333333; font-size: 16px; margin-top: 10px;">Implement highly targeted driver incentives during the <b>5:00 AM - 7:00 AM</b> window. Though absolute volume is lower, the intrinsic profitability per km is at its absolute peak, maximizing fleet yield.</p>
         </div>
         """, unsafe_allow_html=True)
     with col_a2:
         hourly_profit = df_profit.groupby(df_profit['pickup_datetime'].dt.hour)['fare_per_km'].mean().reset_index()
-        hourly_profit.columns = ['Hour', 'Avg $/km']
-        fig1 = px.line(hourly_profit, x='Hour', y='Avg $/km', title="Average Profitability by Hour of Day", markers=True)
+        hourly_profit.columns = ['Hour', 'Avg €/km']
+        fig1 = px.line(hourly_profit, x='Hour', y='Avg €/km', title="Average Profitability by Hour of Day", markers=True)
         fig1.update_traces(line_color="#06C167", line_width=4, marker=dict(size=8, color="#000000"))
         fig1.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0), xaxis=dict(tickmode='linear', dtick=2))
         st.plotly_chart(fig1, use_container_width=True)
@@ -92,7 +92,7 @@ if 'cluster' in df.columns:
             <h4 style="color: #000000; margin-top: 0;">Metric: Wasted Seat Ratio</h4>
             <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> Over 69% of all trips consist of exactly 1 passenger. Using standard 4-seat sedans results in an average capacity utilization of just 25% per solo trip.</p>
             <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
-            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <strong style="color: #000000; text-transform: uppercase;">Actionable Strategy</strong>
             <p style="color: #333333; font-size: 16px; margin-top: 10px;"><b>Fleet Right-sizing:</b> Shift vehicle financing incentives toward ultra-compact or 2-seater EVs. Alternatively, massively subsidize "Uber Pool" algorithms to force consolidation of these solo riders, drastically cutting carbon footprint and operating costs.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -108,7 +108,7 @@ if 'cluster' in df.columns:
             <h4 style="color: #000000; margin-top: 0;">Metric: Cluster Economics</h4>
             <p style="color: #333333; font-size: 16px;"><b>Analysis:</b> This scatter plot isolates our ML clusters to compare their raw volume (X-axis) against their average distance (Y-axis), visualizing the dichotomy of the business model.</p>
             <div style="background-color: #E2E2E2; height: 2px; width: 100%; margin: 15px 0;"></div>
-            <strong style="color: #000000; text-transform: uppercase;">✓ Actionable Strategy</strong>
+            <strong style="color: #000000; text-transform: uppercase;">Actionable Strategy</strong>
             <p style="color: #333333; font-size: 16px; margin-top: 10px;">Allocate marketing budget inversely to distance: Focus 80% of retention budget on the massive <b>short-distance urban clusters</b> (high frequency, high volume), and treat long-distance airport clusters purely as premium, un-discounted cash cows.</p>
         </div>
         """, unsafe_allow_html=True)

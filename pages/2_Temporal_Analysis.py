@@ -22,7 +22,7 @@ with kpi1:
 with kpi2:
     st.metric(label="Busiest Day", value=busiest_day)
 with kpi3:
-    st.metric(label="Peak Avg Fare (5:00 AM)", value=f"${max_avg_fare:.2f}")
+    st.metric(label="Peak Avg Fare (5:00 AM)", value=f"€{max_avg_fare:.2f}")
 
 st.markdown("""
 > **Tip:** Fares remain remarkably stable regardless of the day of the week! However, to avoid long wait times and the absolute highest surge prices, try to avoid booking between 4:00 AM and 5:00 AM for airport runs, or during the Friday and Saturday evening rushes.
@@ -59,14 +59,14 @@ with st.expander("Advanced Analytics & Deep Dive", expanded=False):
         deep_col1, deep_col2 = st.columns(2)
         with deep_col1:
             avg_fare_hour = df.groupby(df['pickup_datetime'].dt.hour)['fare_amount'].mean().reset_index()
-            avg_fare_hour.columns = ["Hour of Day", "Avg Fare ($)"]
-            fig_fare_hour = px.line(avg_fare_hour, x="Hour of Day", y="Avg Fare ($)", title="Average Fare by Hour", color_discrete_sequence=["#06C167"], markers=True)
+            avg_fare_hour.columns = ["Hour of Day", "Avg Fare (€)"]
+            fig_fare_hour = px.line(avg_fare_hour, x="Hour of Day", y="Avg Fare (€)", title="Average Fare by Hour", color_discrete_sequence=["#06C167"], markers=True)
             st.plotly_chart(fig_fare_hour, use_container_width=True)
             st.caption("Fares consistently skyrocket between 4:00 AM and 5:00 AM. This fascinating premium is driven exclusively by long uncrowded runs to the airport for early-morning flights.")
         with deep_col2:
             avg_fare_dow = df.groupby(df['pickup_datetime'].dt.day_name())['fare_amount'].mean().reindex(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]).reset_index()
-            avg_fare_dow.columns = ["Day of Week", "Avg Fare ($)"]
-            fig_fare_dow = px.bar(avg_fare_dow, x="Day of Week", y="Avg Fare ($)", title="Average Fare by Day", color_discrete_sequence=["#06C167"])
+            avg_fare_dow.columns = ["Day of Week", "Avg Fare (€)"]
+            fig_fare_dow = px.bar(avg_fare_dow, x="Day of Week", y="Avg Fare (€)", title="Average Fare by Day", color_discrete_sequence=["#06C167"])
             st.plotly_chart(fig_fare_dow, use_container_width=True)
             st.caption("Average fares remain notably stable regardless of the actual day of the week, with only mild upticks occurring through the prime weekend blocks.")
             
@@ -75,9 +75,9 @@ with st.expander("Advanced Analytics & Deep Dive", expanded=False):
         deep_col3, deep_col4 = st.columns(2)
         with deep_col3:
             avg_fare_year = df.groupby(df['pickup_datetime'].dt.year)['fare_amount'].mean().reset_index()
-            avg_fare_year.columns = ["Year", "Avg Fare ($)"]
+            avg_fare_year.columns = ["Year", "Avg Fare (€)"]
             avg_fare_year["Year"] = avg_fare_year["Year"].astype(str)
-            fig_fare_year = px.bar(avg_fare_year.sort_values("Year"), x="Year", y="Avg Fare ($)", title="Average Fare by Year", color_discrete_sequence=["#06C167"])
+            fig_fare_year = px.bar(avg_fare_year.sort_values("Year"), x="Year", y="Avg Fare (€)", title="Average Fare by Year", color_discrete_sequence=["#06C167"])
             st.plotly_chart(fig_fare_year, use_container_width=True)
             st.caption("Over a multi-year timeframe, we observe a steady overall rise in the average fare, smoothly reflecting the platform's gradual pricing power and broader inflation rates.")
         with deep_col4:

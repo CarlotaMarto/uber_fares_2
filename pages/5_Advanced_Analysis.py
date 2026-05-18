@@ -9,7 +9,7 @@ df = load_data()
 st.title("Advanced Data Science")
 
 # Executive Summary (Warning)
-st.markdown("### ⚠️ Technical Module Warning")
+st.markdown("### Technical Module Warning")
 st.markdown("""
 <p style='color: #666666; font-size: 15px; margin-bottom: 20px; border-left: 4px solid #000000; padding-left: 15px;'>
 This module exposes the raw mathematical matrices and dimensionality reduction algorithms used by our machine learning models. 

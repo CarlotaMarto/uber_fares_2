@@ -1,6 +1,6 @@
 import streamlit as st
 import base64
-from utils import load_data, inject_custom_css
+from utils import load_data
 
 st.set_page_config(
     page_title="Uber Fare Explorer",
@@ -9,7 +9,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-inject_custom_css()
 df = load_data()
 
 import os
@@ -46,7 +45,7 @@ kpi_html = f"""
         </div>
         <div style="flex: 1; background-color: #000000; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
             <div style="color: #A6A6A6; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Avg Fare</div>
-            <div style="color: #FFFFFF; font-size: 30px; font-weight: bold;">${df['fare_amount'].mean():.2f}</div>
+            <div style="color: #FFFFFF; font-size: 30px; font-weight: bold;">{df['fare_amount'].mean():.2f}€</div>
         </div>
         <div style="flex: 1; background-color: #000000; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
             <div style="color: #A6A6A6; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Avg Distance</div>

@@ -32,7 +32,7 @@ def create_executive_pdf_report(user_name):
     ax = plt.gca()
     ax.set_facecolor('#000000')
     df['fare_amount'].hist(bins=40, color='#06C167', edgecolor='#000000', alpha=0.9)
-    plt.title('Market Fare Distribution ($)', color='white', fontsize=14, fontweight='bold', pad=20)
+    plt.title('Market Fare Distribution (€)', color='white', fontsize=14, fontweight='bold', pad=20)
     plt.grid(color='#333333', linestyle='--', linewidth=0.5)
     plt.xlabel('Fare Amount', color='#888888')
     plt.ylabel('Frequency', color='#888888')
@@ -141,7 +141,7 @@ def create_executive_pdf_report(user_name):
     pdf.set_text_color(255, 255, 255)
     
     metrics = [
-        ("Avg Fare Per Trip", "$16.48", "OPTIMAL"),
+        ("Avg Fare Per Trip", "€16.48", "OPTIMAL"),
         ("Max Market Distance", f"{df['distance_km'].max():.1f} km", "STABLE"),
         ("Customer Retention", "92.4%", "GROWING"),
         ("Surge Accuracy", "98.1%", "CRITICAL")

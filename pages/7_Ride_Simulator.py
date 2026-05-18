@@ -1,8 +1,189 @@
 import streamlit as st
 import time
+import pandas as pd
+import plotly.graph_objects as go
 from utils import load_data, render_footer, get_base64_bin_help
 
 df = load_data()
+
+# Predefined coordinates for NYC Locations to enable precise mapping and reverse geocoding
+nyc_coords = {
+    "Times Square, Manhattan": (40.7580, -73.9855),
+    "Central Park, Manhattan": (40.7851, -73.9683),
+    "Empire State Building, Manhattan": (40.7484, -73.9857),
+    "Wall Street, Financial District": (40.7064, -74.0094),
+    "JFK International Airport, Queens": (40.6413, -73.7781),
+    "LaGuardia Airport, Queens": (40.7769, -73.8740),
+    "Brooklyn Bridge Park, Brooklyn": (40.7023, -73.9967),
+    "Barclays Center, Brooklyn": (40.6826, -73.9754)
+}
+
+# Helper to find the nearest NYC landmark/address
+def get_nearest_address(lat, lon):
+    min_dist = float('inf')
+    best_loc = "NYC Location"
+    for loc, (c_lat, c_lon) in nyc_coords.items():
+        dist = (lat - c_lat)**2 + (lon - c_lon)**2
+        if dist < min_dist:
+            min_dist = dist
+            best_loc = loc
+    return best_loc
+
+# Modal window utilizing st.dialog
+if hasattr(st, "dialog"):
+    @st.dialog("Historical Reference Map", width="large")
+    def show_map_dialog(distance_km, simulated_hour, estimated_price, origem, destino):
+        render_map_inside(distance_km, simulated_hour, estimated_price, origem, destino)
+else:
+    def show_map_dialog(distance_km, simulated_hour, estimated_price, origem, destino):
+        st.info("Reference Map Visualization:")
+        render_map_inside(distance_km, simulated_hour, estimated_price, origem, destino)
+
+def render_map_inside(distance_km, simulated_hour, estimated_price, origem, destino):
+    st.markdown(
+        f"""
+        <p style='color: #333333; font-size: 15px; margin-bottom: 20px; font-family: sans-serif;'>
+            This interactive map displays up to 15 real reference trips from our historical database with matching distances 
+            (<b>{distance_km - 2.5:.1f} km - {distance_km + 2.5:.1f} km</b>) and pick-up hours. 
+            Hover over any path to see its original start time, pickup/dropoff landmarks, and price!
+        </p>
+        """, 
+        unsafe_allow_html=True
+    )
+    
+    sim_pickup_lat, sim_pickup_lon = nyc_coords[origem]
+    sim_dropoff_lat, sim_dropoff_lon = nyc_coords[destino]
+    
+    # Filter dataset for similar distance AND similar time of day (within ±3 hours)
+    df_hours = df['pickup_datetime'].dt.hour
+    hour_diff = (df_hours - simulated_hour).abs()
+    import numpy as np
+    hour_dist = np.minimum(hour_diff, 24 - hour_diff)
+    
+    hist_df = df[
+        (df['distance_km'] >= distance_km - 2.5) &
+        (df['distance_km'] <= distance_km + 2.5) &
+        (hour_dist <= 3)
+    ].copy()
+    
+    if len(hist_df) < 3:
+        # Fallback to distance-only if hour matching is too restrictive
+        hist_df = df[
+            (df['distance_km'] >= distance_km - 2.5) &
+            (df['distance_km'] <= distance_km + 2.5)
+        ].copy()
+    
+    if len(hist_df) > 15:
+        hist_df = hist_df.sample(15, random_state=42)
+        
+    fig = go.Figure()
+    
+    # Draw original historical trips (Black)
+    for idx, row in hist_df.iterrows():
+        p_lat = row['pickup_latitude']
+        p_lon = row['pickup_longitude']
+        d_lat = row['dropoff_latitude']
+        d_lon = row['dropoff_longitude']
+        
+        pickup_time = row['pickup_datetime']
+        time_str = "N/A"
+        try:
+            if pd.notna(pickup_time):
+                if hasattr(pickup_time, 'strftime'):
+                    time_str = pickup_time.strftime('%H:%M')
+                else:
+                    dt = pd.to_datetime(pickup_time)
+                    time_str = dt.strftime('%H:%M')
+        except Exception:
+            pass
+            
+        pickup_addr = get_nearest_address(p_lat, p_lon)
+        dropoff_addr = get_nearest_address(d_lat, d_lon)
+        price_str = f"€{row['fare_amount']:.2f}"
+        
+        hover_text = (
+            f"<b>Original Historical Trip</b><br>"
+            f"Start Time: {time_str}<br>"
+            f"Pickup Address: {pickup_addr}<br>"
+            f"Dropoff Address: {dropoff_addr}<br>"
+            f"Price: {price_str}"
+        )
+        
+        fig.add_trace(go.Scattermapbox(
+            mode="lines+markers",
+            lat=[p_lat, d_lat],
+            lon=[p_lon, d_lon],
+            line=dict(color="#000000", width=2),
+            marker=dict(size=6, color="#000000"),
+            hoverinfo="text",
+            hovertext=hover_text,
+            showlegend=False
+        ))
+        
+    # Draw simulated trip (Vibrant Green)
+    sim_hover_text = (
+        f"<b>Simulated Trip (Current)</b><br>"
+        f"Hour: {simulated_hour:02d}:00<br>"
+        f"Pickup: {origem}<br>"
+        f"Dropoff: {destino}<br>"
+        f"Estimated Price: €{estimated_price:.2f}"
+    )
+    
+    fig.add_trace(go.Scattermapbox(
+        mode="lines+markers",
+        lat=[sim_pickup_lat, sim_dropoff_lat],
+        lon=[sim_pickup_lon, sim_dropoff_lon],
+        line=dict(color="#06C167", width=5),
+        marker=dict(size=9, color="#06C167"),
+        hoverinfo="text",
+        hovertext=sim_hover_text,
+        showlegend=False
+    ))
+    
+    # Draw black car marker at the midpoint of simulated trip
+    mid_lat = (sim_pickup_lat + sim_dropoff_lat) / 2
+    mid_lon = (sim_pickup_lon + sim_dropoff_lon) / 2
+    
+    fig.add_trace(go.Scattermapbox(
+        mode="markers",
+        lat=[mid_lat],
+        lon=[mid_lon],
+        marker=dict(size=14, color="#000000"),
+        hoverinfo="text",
+        hovertext="<b>Simulated Midpoint</b>",
+        showlegend=False
+    ))
+    
+    # Set Mapbox layout with high contrast carto-positron map
+    fig.update_layout(
+        mapbox=dict(
+            style="carto-positron",
+            center=dict(lat=(sim_pickup_lat + sim_dropoff_lat)/2, lon=(sim_pickup_lon + sim_dropoff_lon)/2),
+            zoom=11
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
+    
+    # Legend panel (NO emojis in system labels)
+    st.markdown(
+        """
+        <div style='display: flex; gap: 20px; align-items: center; font-size: 14px; font-family: sans-serif; margin-top: 15px;'>
+            <div style='display: flex; align-items: center; gap: 8px;'>
+                <div style='width: 20px; height: 3px; background-color: #000000;'></div>
+                <span>Original Reference Trips (Black)</span>
+            </div>
+            <div style='display: flex; align-items: center; gap: 8px;'>
+                <div style='width: 20px; height: 4px; background-color: #06C167;'></div>
+                <span>Simulated Trip (Green)</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # Injecting local CSS just for the Simulator to match the mock exactly
 st.markdown("""
@@ -61,15 +242,43 @@ div.stButton > button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: 25px;
     border: 1px solid #E2E2E2;
     border-radius: 12px;
-    margin-bottom: 15px;
     background-color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
-.fare-card:hover {
-    border-color: #000000;
-    cursor: pointer;
+div:has(> .card-and-button-container) + div {
+    margin-top: -120px !important;
+    height: 100px !important;
+    position: relative !important;
+    z-index: 100 !important;
+}
+div:has(> .card-and-button-container) + div button {
+    background-color: transparent !important;
+    border: none !important;
+    color: transparent !important;
+    height: 100px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+div:has(> .card-and-button-container) + div button:hover {
+    background-color: transparent !important;
+    border: none !important;
+    color: transparent !important;
+}
+div:has(> .card-and-button-container) + div button:active {
+    background-color: transparent !important;
+    border: none !important;
+    color: transparent !important;
+}
+div:has(> .card-and-button-container):has(+ div:hover) .fare-card {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
 }
 .car-image {
     width: 60px;
@@ -100,19 +309,8 @@ with col_time:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-nyc_locations = [
-    "Times Square, Manhattan",
-    "Central Park, Manhattan",
-    "Empire State Building, Manhattan",
-    "Wall Street, Financial District",
-    "JFK International Airport, Queens",
-    "LaGuardia Airport, Queens",
-    "Brooklyn Bridge Park, Brooklyn",
-    "Barclays Center, Brooklyn"
-]
-
-origem = st.selectbox("Pickup location", options=nyc_locations, index=0)
-destino = st.selectbox("Dropoff location", options=nyc_locations, index=4)
+origem = st.selectbox("Pickup location", options=list(nyc_coords.keys()), index=0)
+destino = st.selectbox("Dropoff location", options=list(nyc_coords.keys()), index=4)
 
 if st.button("See prices"):
     if origem == destino:
@@ -150,27 +348,57 @@ if st.button("See prices"):
                 
             estimated_price = (base_fare + (distance_km * per_km)) * surge
             
-            st.markdown("---")
-            st.markdown(f"**Estimated Trip:** {distance_km:.1f} km ≈ {duration_min} min drive")
-            st.caption(surge_msg)
+            # Store calculated results in session state for cross-rerun persistence
+            st.session_state['prices_calculated'] = True
+            st.session_state['sim_distance'] = distance_km
+            st.session_state['sim_duration'] = duration_min
+            st.session_state['sim_surge'] = surge_msg
+            st.session_state['sim_price'] = estimated_price
+            st.session_state['sim_origem'] = origem
+            st.session_state['sim_destino'] = destino
+            st.session_state['sim_hour'] = simulated_hour
             
-            # Render Fare Cards
-            logo_b64 = get_base64_bin_help('uber_logo.jpg')
-            logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 18px;"/>' if logo_b64 else 'UberX'
-            st.markdown(f"""
-            <div class="fare-card" style="border-left: 6px solid #06C167;">
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <div class="car-image">{logo_img_tag}</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 18px;">Estimated Fare</div>
-                        <div style="color: #666666; font-size: 14px;">Based on historical model data</div>
-                    </div>
-                </div>
-                <div style="font-weight: 700; font-size: 24px; color: #06C167;">${estimated_price:.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.success("(Price successfully generated based on historical data.)")
+            # Force trigger dynamic rerun to render the results cleanly
+            st.rerun()
 
+# Render persistent results if available
+if st.session_state.get('prices_calculated', False):
+    distance_km = st.session_state['sim_distance']
+    duration_min = st.session_state['sim_duration']
+    surge_msg = st.session_state['sim_surge']
+    estimated_price = st.session_state['sim_price']
+    origem = st.session_state['sim_origem']
+    destino = st.session_state['sim_destino']
+    
+    st.markdown("---")
+    st.markdown(f"**Estimated Trip:** {distance_km:.1f} km ≈ {duration_min} min drive")
+    st.caption(surge_msg)
+    
+    # Render Clickable Fare Card wrapped in a relative container
+    logo_b64 = get_base64_bin_help('uber_logo.jpg')
+    logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 18px;"/>' if logo_b64 else 'UberX'
+    
+    st.markdown(f"""
+    <div class="card-and-button-container" style="position: relative; width: 100%; margin-bottom: 20px;">
+        <div class="fare-card" style="border-left: 6px solid #06C167; box-sizing: border-box; background-color: #FFFFFF; border-top: 1px solid #E2E2E2; border-right: 1px solid #E2E2E2; border-bottom: 1px solid #E2E2E2; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="car-image">{logo_img_tag}</div>
+                <div>
+                    <div style="font-weight: 700; font-size: 20px; color: #000000;">Estimated Fare</div>
+                    <div style="color: #666666; font-size: 14px;">Based on historical model data • click to view on map</div>
+                </div>
+            </div>
+            <div style="font-weight: 700; font-size: 32px; color: #06C167;">€{estimated_price:.2f}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Transparent Overlay Button immediately following the card container
+    if st.button("Open Map Overlay", key="open_map_overlay_btn", use_container_width=True):
+        simulated_hour = st.session_state.get('sim_hour', simulated_hour)
+        show_map_dialog(distance_km, simulated_hour, estimated_price, origem, destino)
+    
+    st.success("(Price successfully generated based on historical data.)")
 
 render_footer()
+

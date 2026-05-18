@@ -48,9 +48,9 @@ else:
         df, lat='pickup_latitude', lon='pickup_longitude', z='fare_amount', radius=8,
         center=dict(lat=40.7128, lon=-74.0060), zoom=10, range_color=[0, 80],
         mapbox_style="carto-darkmatter", title='Heatmap: High Demand & Expensive Fare Zones',
-        color_continuous_scale="Greens", height=600, labels={'fare_amount': 'Fare ($)'}
+        color_continuous_scale="Greens", height=600, labels={'fare_amount': 'Fare (€)'}
     )
-    fig_density.update_layout(margin=dict(l=0, r=0, t=40, b=0), coloraxis_colorbar=dict(title="Fare ($)", tickprefix="$"))
+    fig_density.update_layout(margin=dict(l=0, r=0, t=40, b=0), coloraxis_colorbar=dict(title="Fare (€)"))
     st.plotly_chart(fig_density, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("<br>", unsafe_allow_html=True)

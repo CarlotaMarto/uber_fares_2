@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import inject_custom_css, render_footer
+from utils import render_footer
 
 st.set_page_config(
     page_title="Passenger Savings & Hacks",
@@ -7,8 +7,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-inject_custom_css()
 
 st.markdown("""
 <div style="padding: 10px;">
@@ -54,7 +52,7 @@ Fixed upfront pricing shields passengers from unpredictable bridge and tunnel tr
 Sudden rain triggers localized dynamic pricing spikes directly outside major transit hubs like Penn Station and Grand Central. Walking just <b>two blocks away</b> from primary avenues bypasses the localized surge geofence entirely.
 </p>
 <div style="background: #f8fafc; padding: 16px 20px; border-radius: 10px; border-left: 4px solid #0ea5e9;">
-<div style="font-size: 28px; font-weight: 800; color: #0ea5e9;">$8 – $15</div>
+<div style="font-size: 28px; font-weight: 800; color: #0ea5e9;">€8 – €15</div>
 <div style="font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase;">Savings per Trip during Rain</div>
 </div>
 </div>

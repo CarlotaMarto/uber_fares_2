@@ -29,13 +29,45 @@ def get_base64_bin_help(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-def inject_custom_css():
+def inject_custom_css(active_page=None):
     user_type = st.session_state.get('user_type', '')
     role_param = ""
     if user_type == "Uber User":
         role_param = "?role=user"
     elif user_type in ["Uber Owner", "Uber Analyst"]:
         role_param = "?role=owner"
+
+    if active_page is None:
+        try:
+            from streamlit.runtime.scriptrunner import get_script_run_ctx
+            from streamlit.source_util import get_pages
+            ctx = get_script_run_ctx()
+            if ctx is not None:
+                pages = get_pages("")
+                page_info = pages.get(ctx.page_script_hash, {})
+                active_page = page_info.get("url_path", None)
+                if active_page is None:
+                    pname = page_info.get("page_name", "")
+                    if "0_Home" in pname or "Home" in pname:
+                        active_page = "home"
+                    elif "1_Distributions" in pname or "distributions" in pname.lower():
+                        active_page = "distributions"
+                    elif "2_Temporal" in pname or "temporal" in pname.lower():
+                        active_page = "temporal-analysis"
+                    elif "3_Segment" in pname or "segment" in pname.lower():
+                        active_page = "segment-encyclopedia"
+                    elif "4_Geospatial" in pname or "geospatial" in pname.lower():
+                        active_page = "geospatial-hub"
+                    elif "5_Advanced" in pname or "advanced" in pname.lower():
+                        active_page = "advanced-analysis"
+                    elif "6_Business" in pname or "business" in pname.lower():
+                        active_page = "business-strategy"
+                    elif "7_Ride" in pname or "ride" in pname.lower():
+                        active_page = "ride-simulator"
+                    elif "8_Savings" in pname or "savings" in pname.lower():
+                        active_page = "savings"
+        except Exception:
+            pass
 
     logged_user = st.session_state.get('logged_in_user', '')
     user_svg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><circle cx="12" cy="8" r="4"></circle><path d="M18 20v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="12" r="10"></circle></svg>'
@@ -47,12 +79,40 @@ def inject_custom_css():
     else:
         user_display = ""
 
+    def get_link_html(href, text, page_key):
+        is_active = (active_page == page_key or (page_key == "home" and active_page in [None, "", "home"]))
+        active_class = " active" if is_active else ""
+        return f'<a href="{href}" target="_self" class="nav-link{active_class}">{text}</a>'
+
     if user_type == "Uber User":
-        nav_links = f'<a href="/{role_param}" target="_self" class="nav-link">About Us</a><a href="geospatial-hub{role_param}" target="_self" class="nav-link">Maps</a><a href="temporal-analysis{role_param}" target="_self" class="nav-link">Time</a><a href="distributions{role_param}" target="_self" class="nav-link">Prices</a><a href="segment-encyclopedia{role_param}" target="_self" class="nav-link">Profiles</a><span style="color: #555555; margin-right: 25px;">|</span><a href="savings{role_param}" target="_self" class="nav-link">Savings</a>'
-        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator">Ride Simulator</a>{user_display}</div>"""
+        links = [
+            (f"/{role_param}", "About Us", "home"),
+            (f"geospatial-hub{role_param}", "Maps", "geospatial-hub"),
+            (f"temporal-analysis{role_param}", "Time", "temporal-analysis"),
+            (f"distributions{role_param}", "Prices", "distributions"),
+            (f"segment-encyclopedia{role_param}", "Profiles", "segment-encyclopedia"),
+        ]
+        nav_links = "".join([get_link_html(h, t, k) for h, t, k in links])
+        nav_links += '<span style="color: #555555; margin-right: 25px;">|</span>'
+        nav_links += get_link_html(f"savings{role_param}", "Savings", "savings")
+        
+        sim_active = " active" if active_page == "ride-simulator" else ""
+        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator{sim_active}">Ride Simulator</a>{user_display}</div>"""
     elif user_type in ["Uber Owner", "Uber Analyst"]:
-        nav_links = f'<a href="/{role_param}" target="_self" class="nav-link">About Us</a><a href="geospatial-hub{role_param}" target="_self" class="nav-link">Maps</a><a href="temporal-analysis{role_param}" target="_self" class="nav-link">Time</a><a href="distributions{role_param}" target="_self" class="nav-link">Prices</a><a href="segment-encyclopedia{role_param}" target="_self" class="nav-link">Profiles</a><span style="color: #555555; margin-right: 25px;">|</span><a href="advanced-analysis{role_param}" target="_self" class="nav-link">Advanced</a><a href="business-strategy{role_param}" target="_self" class="nav-link">Strategy</a>'
-        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator">Ride Simulator</a>{user_display}</div>"""
+        links_owner = [
+            (f"/{role_param}", "About Us", "home"),
+            (f"geospatial-hub{role_param}", "Maps", "geospatial-hub"),
+            (f"temporal-analysis{role_param}", "Time", "temporal-analysis"),
+            (f"distributions{role_param}", "Prices", "distributions"),
+            (f"segment-encyclopedia{role_param}", "Profiles", "segment-encyclopedia"),
+        ]
+        nav_links = "".join([get_link_html(h, t, k) for h, t, k in links_owner])
+        nav_links += '<span style="color: #555555; margin-right: 25px;">|</span>'
+        nav_links += get_link_html(f"advanced-analysis{role_param}", "Advanced", "advanced-analysis")
+        nav_links += get_link_html(f"business-strategy{role_param}", "Strategy", "business-strategy")
+        
+        sim_active = " active" if active_page == "ride-simulator" else ""
+        right_button = f"""<div style="display: flex; align-items: center;"><a href="ride-simulator{role_param}" target="_self" class="btn-simulator{sim_active}">Ride Simulator</a>{user_display}</div>"""
     else:
         nav_links = ""
         right_button = f"""<div style="display: flex; align-items: center;">{user_display}</div>"""
@@ -86,9 +146,6 @@ def inject_custom_css():
         footer {{visibility: hidden;}}
         .header-anchor, [data-testid="stHeaderAnchor"], [data-testid="stHeaderActionElements"], a.header-anchor, .st-header-anchor, .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {{display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;}}
         
-        /* Plotly Modebar Customization: Replace Camera with Download Arrow */
-        a[data-title*="Download"] svg, .modebar-btn[data-title*="Download"] svg {{display: none !important;}}
-        a[data-title*="Download"]::before, .modebar-btn[data-title*="Download"]::before {{content: "⬇" !important; font-size: 16px !important; font-weight: bold !important; padding: 0 4px !important; color: #333333 !important;}}
         
         /* Streamlit Tabs Customization: Override default red highlight with cyan/blue */
         div[data-testid="stTabs"] button[aria-selected="true"] {{color: #0ea5e9 !important; border-bottom-color: #0ea5e9 !important;}}
@@ -130,18 +187,38 @@ def inject_custom_css():
             text-decoration: none !important;
             margin-right: 25px;
             opacity: 0.7;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, color 0.2s, border-bottom-color 0.2s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
         }}
         .nav-link:hover {{
             opacity: 1.0;
         }}
+        .nav-link.active {{
+            color: #06C167 !important;
+            opacity: 1.0 !important;
+            font-weight: 700 !important;
+            border-bottom: 2px solid #06C167 !important;
+        }}
         .btn-simulator {{
             color: #06C167 !important;
             font-family: 'Inter', sans-serif;
-            font-size: 16px !important;
-            font-weight: 800 !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
             text-decoration: none !important;
             margin-right: 20px;
+            opacity: 0.8;
+            transition: opacity 0.2s, border-bottom-color 0.2s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }}
+        .btn-simulator:hover {{
+            opacity: 1.0;
+        }}
+        .btn-simulator.active {{
+            opacity: 1.0 !important;
+            font-weight: 700 !important;
+            border-bottom: 2px solid #06C167 !important;
         }}
         
         /* High-Fidelity Segment Animations */
@@ -362,3 +439,59 @@ The Uber Fare Explorer Team"""
             print(f"Real email successfully sent to {user_email}")
         except Exception as e:
             print(f"Failed to send real email: {e}")
+
+
+def send_reset_email(user_email, code):
+    """
+    Sends a password reset email containing a 6-digit verification code.
+    Reuses the configured Gmail App credentials.
+    """
+    if not user_email:
+        return
+        
+    subject = "Uber Fare Explorer - Password Reset Code"
+    body = f"""Hello,
+
+You requested a password reset for your Uber Fare Explorer account.
+
+Please use the following 6-digit verification code to complete the process:
+
+{code}
+
+This code is valid for your current session. If you did not request this reset, please ignore this email.
+
+Best regards,
+The Uber Fare Explorer Team"""
+
+    print("\n" + "="*50)
+    print(f"RESET EMAIL SENT TO: {user_email}")
+    print(f"VERIFICATION CODE: {code}")
+    print("="*50 + "\n")
+    
+    try:
+        with open("reset_code.txt", "w") as f:
+            f.write(f"Email: {user_email}\nCode: {code}\n")
+    except Exception as e:
+        print(f"Failed to write reset code to file: {e}")
+    
+    import smtplib
+    from email.message import EmailMessage
+    
+    smtp_user = "carlota.marto@gmail.com"
+    smtp_pass = "gipkqexaiwfmkxpv"
+    
+    if smtp_user and smtp_pass:
+        msg = EmailMessage()
+        msg.set_content(body)
+        msg['Subject'] = subject
+        msg['From'] = smtp_user
+        msg['To'] = user_email
+        try:
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            print(f"Real reset email successfully sent to {user_email}")
+        except Exception as e:
+            print(f"Failed to send real reset email: {e}")
+

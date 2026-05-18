@@ -15,14 +15,14 @@ st.markdown("""
 
 if 'cluster' in df.columns:
     clusters = [
-        {"id": "0: Airport / Long-Distance", "desc": "High-speed hauls to JFK/EWR. Profitable and specialized.", "color": "#06C167", "speed": "4s", "emoji": "✈️"},
-        {"id": "1: Standard Weekday", "desc": "The rhythm of the city. Reliable daytime transit.", "color": "#000000", "speed": "8s", "emoji": "🏙️"},
-        {"id": "2: Weekend Rush-Hour", "desc": "Busy leisure hours. Navigating the Saturday surge.", "color": "#333333", "speed": "12s", "emoji": "🛍️"},
-        {"id": "3: Standard Weekend", "desc": "Relaxed weekend vibes for brunches and sightseeing.", "color": "#666666", "speed": "10s", "emoji": "🍦"},
-        {"id": "4: High Passenger / SUV", "desc": "Big groups. Big vehicles. Big impact.", "color": "#999999", "speed": "9s", "emoji": "🚐"},
-        {"id": "5: Fare / GPS Anomalies", "desc": "The outliers. Edge-cases and flat-rate tolls.", "color": "#CCCCCC", "speed": "15s", "emoji": "⚠️"},
-        {"id": "6: Weekday Rush-Hour", "desc": "Peak adrenaline. The high-volume commute pulse.", "color": "#1f7a46", "speed": "3s", "emoji": "👔"},
-        {"id": "7: Late-Night Party", "desc": "Neon lights and night owls. Connecting the nightlife.", "color": "#048043", "speed": "6s", "emoji": "✨"},
+        {"id": "0: Airport / Long-Distance", "desc": "High-speed hauls to JFK/EWR. Profitable and specialized.", "color": "#06C167", "speed": "4s"},
+        {"id": "1: Standard Weekday", "desc": "The rhythm of the city. Reliable daytime transit.", "color": "#000000", "speed": "8s"},
+        {"id": "2: Weekend Rush-Hour", "desc": "Busy leisure hours. Navigating the Saturday surge.", "color": "#333333", "speed": "12s"},
+        {"id": "3: Standard Weekend", "desc": "Relaxed weekend vibes for brunches and sightseeing.", "color": "#666666", "speed": "10s"},
+        {"id": "4: High Passenger / SUV", "desc": "Big groups. Big vehicles. Big impact.", "color": "#999999", "speed": "9s"},
+        {"id": "5: Fare / GPS Anomalies", "desc": "The outliers. Edge-cases and flat-rate tolls.", "color": "#CCCCCC", "speed": "15s"},
+        {"id": "6: Weekday Rush-Hour", "desc": "Peak adrenaline. The high-volume commute pulse.", "color": "#1f7a46", "speed": "3s"},
+        {"id": "7: Late-Night Party", "desc": "Neon lights and night owls. Connecting the nightlife.", "color": "#048043", "speed": "6s"},
     ]
 
     # Display cards in rows of 2
@@ -43,7 +43,7 @@ if 'cluster' in df.columns:
 </div>
 <p style="color: #666666; font-size: 15px; margin-top: 5px; min-height: 45px;">{c['desc']}</p>
 <div style="display: flex; gap: 30px; margin-top: 20px; border-top: 1px solid #F0F0F0; padding-top: 15px;">
-<div><span style="color: #999999; font-size: 11px; text-transform: uppercase; font-weight: 700;">Avg Fare</span><br><b style="font-size: 20px; color: #000000;">${avg_fare:.2f}</b></div>
+<div><span style="color: #999999; font-size: 11px; text-transform: uppercase; font-weight: 700;">Avg Fare</span><br><b style="font-size: 20px; color: #000000;">€{avg_fare:.2f}</b></div>
 <div><span style="color: #999999; font-size: 11px; text-transform: uppercase; font-weight: 700;">Avg Distance</span><br><b style="font-size: 20px; color: #000000;">{avg_dist:.2f}km</b></div>
 </div>
 </div>

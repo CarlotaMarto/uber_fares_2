@@ -35,9 +35,9 @@ def auth_modal(mode="login"):
                     del st.query_params['action']
                 st.rerun()
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #666; font-size: 14px;'>Forgot your password?</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'><a href='{role_qs}action=forgot' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Forgot your password?</a></p>", unsafe_allow_html=True)
         st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'>Don't have an account? <a href='{role_qs}action=register' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Sign up!</a></p>", unsafe_allow_html=True)
-    else:
+    elif mode == "register":
         st.markdown("<h2 style='text-align: center; color: #333333; font-family: sans-serif; margin-bottom: 20px; font-weight: 700;'>Create Account</h2>", unsafe_allow_html=True)
         with st.form("reg_form", border=False):
             st.text_input("First Name", placeholder="Jane", key="fn_reg")
@@ -60,6 +60,62 @@ def auth_modal(mode="login"):
                 st.rerun()
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'>Already have an account? <a href='{role_qs}action=login' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Sign in!</a></p>", unsafe_allow_html=True)
+    elif mode == "forgot":
+        st.markdown("<h2 style='text-align: center; color: #333333; font-family: sans-serif; margin-bottom: 20px; font-weight: 700;'>Reset Password</h2>", unsafe_allow_html=True)
+        
+        # Check if code is already sent in session state
+        reset_code = st.session_state.get('reset_code')
+        
+        if not reset_code:
+            # Step 1: Request verification code
+            with st.form("forgot_form", border=False):
+                email = st.text_input("Email", placeholder="name@company.com", key="email_forgot")
+                st.markdown("<br>", unsafe_allow_html=True)
+                submitted = st.form_submit_button("SEND RESET CODE", type="primary", use_container_width=True)
+                if submitted:
+                    if not email:
+                        st.error("Please enter your email.")
+                    else:
+                        import random
+                        from utils import send_reset_email
+                        code = f"{random.randint(100000, 999999)}"
+                        st.session_state['reset_code'] = code
+                        st.session_state['reset_email'] = email
+                        
+                        # Send email
+                        send_reset_email(email, code)
+                        st.toast("Verification code sent to your email!")
+                        st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'><a href='{role_qs}action=login' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Back to Sign in</a></p>", unsafe_allow_html=True)
+        else:
+            # Step 2: Verification and reset password
+            with st.form("reset_form", border=False):
+                st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'>Verification code sent to <b>{st.session_state.get('reset_email', '')}</b></p>", unsafe_allow_html=True)
+                entered_code = st.text_input("Verification Code", placeholder="123456", key="entered_code")
+                new_pass = st.text_input("New Password", type="password", placeholder="••••••••", key="new_pass")
+                confirm_pass = st.text_input("Re-enter New Password", type="password", placeholder="••••••••", key="confirm_pass")
+                st.markdown("<br>", unsafe_allow_html=True)
+                submitted = st.form_submit_button("RESET PASSWORD", type="primary", use_container_width=True)
+                if submitted:
+                    if not entered_code or not new_pass or not confirm_pass:
+                        st.error("Please fill in all fields.")
+                    elif entered_code.strip() != reset_code:
+                        st.error("Incorrect verification code.")
+                    elif new_pass != confirm_pass:
+                        st.error("Passwords do not match.")
+                    else:
+                        st.session_state['just_reset'] = True
+                        # Clean up
+                        del st.session_state['reset_code']
+                        del st.session_state['reset_email']
+                        
+                        # Go back to login
+                        st.query_params['action'] = 'login'
+                        st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'>Didn't receive the code? <a href='{role_qs}action=forgot&restart=1' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Resend / Start over</a></p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #666; font-size: 14px;'><a href='{role_qs}action=login' target='_self' style='color: #0ea5e9; font-weight: bold; text-decoration: none;'>Back to Sign in</a></p>", unsafe_allow_html=True)
 
 if 'role' in st.query_params:
     if st.query_params['role'] == 'user':
@@ -67,13 +123,27 @@ if 'role' in st.query_params:
     elif st.query_params['role'] in ['owner', 'analyst']:
         st.session_state['user_type'] = 'Uber Analyst'
 
+if 'restart' in st.query_params:
+    if 'reset_code' in st.session_state:
+        del st.session_state['reset_code']
+    if 'reset_email' in st.session_state:
+        del st.session_state['reset_email']
+    del st.query_params['restart']
+
 if 'action' in st.query_params and not st.session_state.get('auth_success', False):
     if 'user_type' in st.session_state:
         action = st.query_params['action']
-        auth_modal(mode="login" if action=="login" else "register")
+        if action == "forgot":
+            auth_modal(mode="forgot")
+        else:
+            auth_modal(mode="login" if action=="login" else "register")
     else:
         if 'action' in st.query_params:
             del st.query_params['action']
+
+if st.session_state.get('just_reset', False):
+    st.toast("Password reset successfully! Please sign in with your new password.")
+    st.session_state['just_reset'] = False
 
 if st.session_state.get('auth_success', False):
     if st.session_state.get('just_authenticated', False):
@@ -93,10 +163,9 @@ if st.session_state.get('auth_success', False):
     # So we can safely reset it here if we assume the browser updated the URL.
     st.session_state['auth_success'] = False
 
-# Inject the global CSS and Top Navbar onto every page
-inject_custom_css()
-
 if 'user_type' not in st.session_state:
+    # Inject styling for the welcome screen
+    inject_custom_css()
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; color: #000000;'>Welcome to Uber Fare Explorer</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 24px; color: #666666; max-width: 720px; margin: 0 auto;'>Choose the experience that matches your role and get started with focused insights tailored for user or analyst.</p>", unsafe_allow_html=True)
@@ -186,4 +255,5 @@ else:  # Uber Owner
 
 # Run the router and completely hide the default sidebar menu
 pg = st.navigation(pages, position="hidden")
+inject_custom_css(pg.url_path)
 pg.run()
