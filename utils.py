@@ -58,13 +58,15 @@ def inject_custom_css(active_page=None):
                         active_page = "segment-encyclopedia"
                     elif "4_Geospatial" in pname or "geospatial" in pname.lower():
                         active_page = "geospatial-hub"
-                    elif "5_Advanced" in pname or "advanced" in pname.lower():
+                    elif "5_Backend" in pname or "backend" in pname.lower():
+                        active_page = "backend"
+                    elif "6_Advanced" in pname or "advanced" in pname.lower():
                         active_page = "advanced-analysis"
-                    elif "6_Business" in pname or "business" in pname.lower():
+                    elif "7_Business" in pname or "business" in pname.lower():
                         active_page = "business-strategy"
-                    elif "7_Ride" in pname or "ride" in pname.lower():
+                    elif "8_Ride" in pname or "ride" in pname.lower():
                         active_page = "ride-simulator"
-                    elif "8_Savings" in pname or "savings" in pname.lower():
+                    elif "9_Savings" in pname or "savings" in pname.lower():
                         active_page = "savings"
         except Exception:
             pass
@@ -108,6 +110,7 @@ def inject_custom_css(active_page=None):
         ]
         nav_links = "".join([get_link_html(h, t, k) for h, t, k in links_owner])
         nav_links += '<span style="color: #555555; margin-right: 25px;">|</span>'
+        nav_links += get_link_html(f"backend{role_param}", "Backend", "backend")
         nav_links += get_link_html(f"advanced-analysis{role_param}", "Advanced", "advanced-analysis")
         nav_links += get_link_html(f"business-strategy{role_param}", "Strategy", "business-strategy")
         
